@@ -2,6 +2,9 @@ cmake_minimum_required(VERSION 3.2)
 
 set(CMAKE_CXX_STANDARD 14)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
+# The above is supposed to be enough to force C++14,
+# but doesn't work for me
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++14")
 
 project(geo-social_influence_maximization VERSION 0.1 LANGUAGES CXX)
 
@@ -26,6 +29,11 @@ if (Boost_FOUND)
   #link_directories (${Boost_LIBRARY_DIRS})
 endif ()
 
+# Include boost spirit X3 parser
+set(Spirit_INCLUDE_DIR ${CMAKE_SOURCE_DIR}/lib/spirit/include)
+include_directories(INTERFACE ${Spirit_INCLUDE_DIR})
+set(Spirit_HEADERS ${Spirit_INCLUDE_DIR}/boost/spirit/home/x3.hpp)
+
 # Include docopt command line parsing tool
 add_subdirectory(lib/docopt.cpp)
 
@@ -33,7 +41,7 @@ add_subdirectory(lib/docopt.cpp)
 add_executable(gsinfmax main.cpp)
 
 # "Link a target to given libraries."
-target_link_libraries(gsinfmax docopt ${Boost_LIBRARIES})
+target_link_libraries(gsinfmax docopt ${Boost_LIBRARIES} ${Spirit_HEADERS})
 add_dependencies(gsinfmax docopt)
 
 install(TARGETS gsinfmax DESTINATION bin)
