@@ -46,13 +46,13 @@ void parse_gowalla(auto g, std::string edge_path, std::string location_path) {
 	namespace x3 = boost::spirit::x3;
 	namespace fusion = boost::fusion;
 
-	std::unordered_map<int, vertex_descr_t>  vertexes;
-	std::unordered_set<int>  location_already_added; // Store vertexes, for which we already added location
+	std::unordered_map<int, vertex_descr_t>  vertices; // Store vertex descriptors
+	std::unordered_set<int>  location_already_added; // Store vertices, for which we already added location
 
 	// Lambda function that adds vertex to graph if not already added
 	auto add_vertex = [&](auto& ctx){
 		// Return if the vertex is already known
-		if (vertexes.find(x3::_attr(ctx)) != vertexes.end())	{
+		if (vertices.find(x3::_attr(ctx)) != vertices.end())	{
 			return false;
 		}
 
@@ -60,7 +60,7 @@ void parse_gowalla(auto g, std::string edge_path, std::string location_path) {
 		auto v = boost::add_vertex(g);
 
 		// And add vertex descriptor to map
-		vertexes[x3::_attr(ctx)] = v;
+		vertices[x3::_attr(ctx)] = v;
 	};
 
 	// Lambda function that adds edge to graph
@@ -68,12 +68,12 @@ void parse_gowalla(auto g, std::string edge_path, std::string location_path) {
 		// _attr(ctx) returns a boost fusion tuple
 		auto attr = x3::_attr(ctx);
 
-		// Add edge from the vertexes returned from context
-		boost::add_edge(vertexes[fusion::at_c<0>(attr)],
-				vertexes[fusion::at_c<1>(attr)], g);
+		// Add edge from the vertices returned from context
+		boost::add_edge(vertices[fusion::at_c<0>(attr)],
+				vertices[fusion::at_c<1>(attr)], g);
 	};
 
-	// Lambda function that adds locations to vertexes in the graph
+	// Lambda function that adds locations to vertices in the graph
 	auto add_location = [&](auto& ctx){
 		// _attr(ctx) returns a boost fusion tuple
 		auto attr = x3::_attr(ctx);
@@ -88,12 +88,12 @@ void parse_gowalla(auto g, std::string edge_path, std::string location_path) {
 		// Test if vertex is in our graph
 		// We are parsing locations from a different file than the graph,
 		// so there might be inconsistencies
-		if (vertexes.find(vertex_id) == vertexes.end())	{
+		if (vertices.find(vertex_id) == vertices.end())	{
 			std::cerr << "Tried to add location to vertex " << vertex_id << ", but this vertex is not in our graph" << std::endl;
 			return false;
 		}
 
-		auto vertex = vertexes[vertex_id];
+		auto vertex = vertices[vertex_id];
 
 		// Add location to the vertex
 		g[vertex].latitude = fusion::at_c<2>(attr);
