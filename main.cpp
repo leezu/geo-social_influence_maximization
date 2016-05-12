@@ -27,7 +27,8 @@ struct edge_property {
 };
 
 // Define our graph
-typedef boost::adjacency_list<boost::vecS, boost::vecS, boost::undirectedS, vertex_property, edge_property > graph;
+// We use setS to enforce our graph not to become a multigraph
+typedef boost::adjacency_list<boost::setS, boost::vecS, boost::undirectedS, vertex_property, edge_property > graph;
 //Some typedefs for simplicity
 typedef boost::graph_traits<graph>::vertex_descriptor vertex_descr_t;
 typedef boost::graph_traits<graph>::edge_descriptor edge_descr_t;
