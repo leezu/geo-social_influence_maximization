@@ -7,6 +7,7 @@
 #include <fstream>
 #include <string>
 #include <unordered_map>
+#include <unordered_set>
 
 #include "docopt.h"
 
@@ -46,6 +47,7 @@ void parse_gowalla(auto g, std::string edge_path, std::string location_path) {
 	namespace fusion = boost::fusion;
 
 	std::unordered_map<int, vertex_descr_t>  vertexes;
+	std::unordered_set<int>  location_already_added; // Store vertexes, for which we already added location
 
 	// Lambda function that adds vertex to graph if not already added
 	auto add_vertex = [&](auto& ctx){
@@ -56,7 +58,6 @@ void parse_gowalla(auto g, std::string edge_path, std::string location_path) {
 
 		// Otherwise add vertex to graph
 		auto v = boost::add_vertex(g);
-		// TODO: Add the location to the vertex
 
 		// And add vertex descriptor to map
 		vertexes[x3::_attr(ctx)] = v;
@@ -72,18 +73,51 @@ void parse_gowalla(auto g, std::string edge_path, std::string location_path) {
 				vertexes[fusion::at_c<1>(attr)], g);
 	};
 
+	// Lambda function that adds locations to vertexes in the graph
+	auto add_location = [&](auto& ctx){
+		// _attr(ctx) returns a boost fusion tuple
+		auto attr = x3::_attr(ctx);
+		auto vertex_id = fusion::at_c<0>(attr);
+
+		if (location_already_added.find(vertex_id) != location_already_added.end())	{
+			// Exit, as we already stored the location for this vertex
+			return true;
+		}
+		location_already_added.insert(vertex_id);
+
+		// Test if vertex is in our graph
+		// We are parsing locations from a different file than the graph,
+		// so there might be inconsistencies
+		if (vertexes.find(vertex_id) == vertexes.end())	{
+			std::cerr << "Tried to add location to vertex " << vertex_id << ", but this vertex is not in our graph" << std::endl;
+			return false;
+		}
+
+		auto vertex = vertexes[vertex_id];
+
+		// Add location to the vertex
+		g[vertex].latitude = fusion::at_c<2>(attr);
+		g[vertex].longitude = fusion::at_c<3>(attr);
+
+		return true;
+	};
+
 	std::ifstream edge_file(edge_path);
+	std::ifstream location_file(location_path);
 	if (!edge_file) {
 		std::cerr << "Couldn't open " << edge_path << " for reading";
 	}
+	if (!location_file) {
+		std::cerr << "Couldn't open " << location_path << " for reading";
+	}
 	// By default whitespace is skipped, so we disable that
 	edge_file >> std::noskipws;
-	// TODO: open location file
+	location_file >> std::noskipws;
 
 	// Parse the gowalla edge file
-	boost::spirit::istream_iterator edge_file_iterator_first(edge_file), eof;
+	boost::spirit::istream_iterator file_iterator(edge_file), eof;
 
-	x3::phrase_parse(edge_file_iterator_first, eof,
+	x3::phrase_parse(file_iterator, eof,
 			// Begin grammar
 			(
 			 *((x3::int_[add_vertex] >> x3::int_[add_vertex])[add_edge])
@@ -92,13 +126,32 @@ void parse_gowalla(auto g, std::string edge_path, std::string location_path) {
 			x3::space
 			);
 
-	// Fail if we couldn't parse the whole file
-	if (edge_file_iterator_first != eof) {
-		std::cerr << "Couldn't parse whole gowalla file" << std::endl;
+	// Fail if we couldn't parse the whole edges file
+	if (file_iterator != eof) {
+		std::cerr << "Couldn't parse whole edges file" << std::endl;
+	}
+
+	// Parse the gowalla location file
+	file_iterator = boost::spirit::istream_iterator(location_file);
+
+	x3::phrase_parse(file_iterator, eof,
+			// Begin grammar
+			(
+			 // vertex_id 	time of checkin 	  latitude 	longitude 		      location id
+			 *((x3::int_ >> x3::lexeme[*x3::graph] >> x3::double_ >> x3::double_)[add_location] >> x3::int_ >> x3::eol)
+			),
+			// End grammar
+			x3::blank
+			);
+
+	// Fail if we couldn't parse the whole location file
+	if (file_iterator != eof) {
+		std::cerr << "Couldn't parse whole location file" << std::endl;
 	}
 
 	std::cout << "Parsed " << boost::num_vertices(g) << " vertices" << std::endl;
 	std::cout << "Parsed " << boost::num_edges(g) << " edges" << std::endl;
+	std::cout << "Added location to " << location_already_added.size() << " vertices" << std::endl;
 
 	return;
 }
