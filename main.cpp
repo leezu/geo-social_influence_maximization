@@ -8,6 +8,7 @@
 #include <string>
 #include <unordered_map>
 #include <unordered_set>
+#include <random>
 
 #include "docopt.h"
 
@@ -49,6 +50,10 @@ void parse_gowalla(auto g, std::string edge_path, std::string location_path) {
 	std::unordered_map<int, vertex_descr_t>  vertices; // Store vertex descriptors
 	std::unordered_set<int>  location_already_added; // Store vertices, for which we already added location
 
+	// Random number generator for the edge weights
+	std::default_random_engine generator;
+	std::uniform_real_distribution<double> distribution(0.0,1.0);
+
 	// Lambda function that adds vertex to graph if not already added
 	auto add_vertex = [&](auto& ctx){
 		// Return if the vertex is already known
@@ -69,8 +74,13 @@ void parse_gowalla(auto g, std::string edge_path, std::string location_path) {
 		auto attr = x3::_attr(ctx);
 
 		// Add edge from the vertices returned from context
-		boost::add_edge(vertices[fusion::at_c<0>(attr)],
+		auto aer = boost::add_edge(vertices[fusion::at_c<0>(attr)],
 				vertices[fusion::at_c<1>(attr)], g);
+
+		edge_property edge {};
+		edge.weight = distribution(generator);
+
+		g[aer.first] = edge;
 	};
 
 	// Lambda function that adds locations to vertices in the graph
