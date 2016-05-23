@@ -9,6 +9,9 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 # but doesn't work for me
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++14")
 
+# Enable Release profile (and therefore optimization flags)
+set(CMAKE_BUILD_TYPE Release)
+
 project(geo-social_influence_maximization VERSION 0.1 LANGUAGES CXX)
 
 # Include boost graph library
