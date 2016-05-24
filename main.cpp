@@ -27,13 +27,19 @@ R"(Geo-social influence maximization
 )";
 
 // Define classes for vertex and edge properties
-struct vertex_property {
-	double longitude;
-	double latitude;
+class vertex_property {
+	public:
+		double longitude;
+		double latitude;
+
+		vertex_property(): longitude(0), latitude(0) {};
 };
 
-struct edge_property {
-	double weight;
+class edge_property {
+	public:
+		double weight;
+
+		edge_property(): weight(0) {};
 };
 
 // Define our graph
