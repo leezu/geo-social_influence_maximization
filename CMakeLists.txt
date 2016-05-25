@@ -5,9 +5,6 @@ set(CMAKE_EXPORT_COMPILE_COMMANDS 1)
 
 set(CMAKE_CXX_STANDARD 14)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
-# The above is supposed to be enough to force C++14,
-# but doesn't work for me
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++14")
 
 # Enable Release profile (and therefore optimization flags)
 set(CMAKE_BUILD_TYPE Release)
@@ -38,16 +35,16 @@ endif ()
 # Include boost spirit X3 parser
 set(Spirit_INCLUDE_DIR ${CMAKE_SOURCE_DIR}/lib/spirit/include)
 include_directories(INTERFACE ${Spirit_INCLUDE_DIR})
-set(Spirit_HEADERS ${Spirit_INCLUDE_DIR}/boost/spirit/home/x3.hpp)
 
 # Include docopt command line parsing tool
-add_subdirectory(lib/docopt.cpp)
+include_directories(lib/docopt.cpp)
+add_library(docopt STATIC lib/docopt.cpp/docopt.cpp)
 
-# "Add an executable to the project using the specified source files."
-add_executable(gsinfmax main.cpp)
+# Add an executable to the project using the specified source files
+set(gsinfmax_SRC main.cpp)
+add_executable(gsinfmax ${gsinfmax_SRC})
 
-# "Link a target to given libraries."
-target_link_libraries(gsinfmax docopt ${Boost_LIBRARIES} ${Spirit_HEADERS})
-add_dependencies(gsinfmax docopt)
+# Link against boost libraries.
+target_link_libraries(gsinfmax docopt ${Boost_LIBRARIES})
 
 install(TARGETS gsinfmax DESTINATION bin)
