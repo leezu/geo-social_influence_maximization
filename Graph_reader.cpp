@@ -18,6 +18,65 @@ using graph = boost::adjacency_list<boost::setS, boost::vecS, boost::undirectedS
 using vertex_descriptor = graph::vertex_descriptor;
 using edge_descriptor = graph::edge_descriptor;
 
+bool Gowalla_austin_dallas_reader::read_edges(std::string fname) {
+	// Lambda function that adds edge to graph
+	auto add_edge = [&](auto& ctx){
+		auto attr = x3::_attr(ctx);
+		auto vertex_id = fusion::at_c<0>(attr);
+		auto neighbors = fusion::at_c<1>(attr);
+
+		for (auto i : neighbors) {
+			auto aer = boost::add_edge(vertex_id, i, g);
+
+			edge_property edge {};
+			edge.weight = distribution(generator);
+
+			g[aer.first] = edge;
+		}
+	};
+
+	// Parse the gowalla edge file
+	boost::iostreams::mapped_file_source mm(fname);
+
+	auto f = mm.begin(), l = mm.end();
+
+	//		[vertex_id]		[number_of_neigbhors]		[neighbor]		[1]
+	x3::parse(f, l, *((x3::int_ >> ' ' >> x3::omit[x3::int_] >> ' ' >> ((x3::int_ >> ' ' >> x3::omit[x3::int_]) % ' '))[add_edge] >> x3::eol));
+
+	std::cout << "Parsed " << boost::num_vertices(g) << " vertices" << std::endl;
+	std::cout << "Parsed " << boost::num_edges(g) << " edges" << std::endl;
+
+	// Fail if we couldn't parse the whole edges file
+	return f == l;
+}
+
+bool Gowalla_austin_dallas_reader::read_locations(std::string fname) {
+	auto add_location = [&](auto& ctx){
+		// _attr(ctx) returns a boost fusion tuple
+		auto attr = x3::_attr(ctx);
+		auto vertex_id = fusion::at_c<0>(attr);
+
+		// Add location to the vertex
+		auto& props = g[vertex_id];
+		props.latitude = fusion::at_c<1>(attr);
+		props.longitude = fusion::at_c<2>(attr);
+
+		return true;
+	};
+
+	boost::iostreams::mapped_file_source mm(fname);
+
+	auto f = mm.begin(), l = mm.end();
+
+	x3::parse(f, l,
+			// [vertex_id]        [latitude]            [longitude]
+			*((x3::int_ >> ' ' >> x3::double_ >> ' ' >> x3::double_)[add_location] >> x3::eol)
+		 );
+
+	// Fail if we couldn't parse the whole location file
+	return f == l;
+}
+
 bool Gowalla_reader::read_edges(std::string fname) {
 	// Lambda function that adds edge to graph
 	auto add_edge = [&](auto& ctx){

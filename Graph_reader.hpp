@@ -39,3 +39,14 @@ class Gowalla_reader : public Graph_reader {
 		std::default_random_engine generator;
 		std::uniform_real_distribution<double> distribution = std::uniform_real_distribution<double>(0.0, 1.0);
 };
+
+class Gowalla_austin_dallas_reader : public Graph_reader {
+	public:
+		bool read_edges(std::string fname);
+		bool read_locations(std::string fname);
+
+	private:
+		// Random number generator for the edge weights
+		std::default_random_engine generator;
+		std::uniform_real_distribution<double> distribution = std::uniform_real_distribution<double>(0.0, 1.0);
+};

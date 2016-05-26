@@ -12,6 +12,7 @@ R"(Geo-social influence maximization
 
     Usage:
       gsinfmax gowalla <edges> <locations>
+      gsinfmax gowalla_austin_dallas <edges> <locations>
       gsinfmax (-h | --help)
       gsinfmax --version
 
@@ -33,8 +34,13 @@ int main(int argc, char* argv[]) {
 
 
 	// Gowalla dataset
-	if (args.find("gowalla") != args.end()) {
+	if (args.at("gowalla").asBool()) {
 		auto reader = Gowalla_reader();
+
+		reader.read_edges(args["<edges>"].asString());
+		reader.read_locations(args["<locations>"].asString());
+	} else if (args.at("gowalla_austin_dallas").asBool()) {
+		auto reader = Gowalla_austin_dallas_reader();
 
 		reader.read_edges(args["<edges>"].asString());
 		reader.read_locations(args["<locations>"].asString());
