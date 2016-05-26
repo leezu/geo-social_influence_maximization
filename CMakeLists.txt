@@ -41,7 +41,7 @@ include_directories(lib/docopt.cpp)
 add_library(docopt STATIC lib/docopt.cpp/docopt.cpp)
 
 # Add an executable to the project using the specified source files
-set(gsinfmax_SRC main.cpp)
+set(gsinfmax_SRC main.cpp Graph_reader.cpp)
 add_executable(gsinfmax ${gsinfmax_SRC})
 
 # Link against boost libraries.
