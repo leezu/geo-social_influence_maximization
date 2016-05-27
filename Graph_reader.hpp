@@ -3,61 +3,38 @@
 #include <boost/graph/adjacency_list.hpp>
 #include <random>
 
-// Define classes for vertex and edge properties
-class vertex_property {
-	public:
-		double longitude;
-		double latitude;
+namespace gsinfmax {
+	// Define classes for vertex and edge properties
+	class user {
+		public:
+			double longitude;
+			double latitude;
 
-		vertex_property(): longitude(0), latitude(0) {};
-};
+			user(): longitude(0), latitude(0) {};
+	};
 
-class edge_property {
-	public:
-		double weight;
+	class friendship {
+		public:
+			double weight;
 
-		edge_property(): weight(0) {};
-};
+			friendship(): weight(0) {};
+	};
 
-struct event_location {
-	double longitude;
-	double latitude;
-};
+	// Define our graph
+	// We use setS to enforce our graph not to become a multigraph
+	using network = boost::adjacency_list<boost::setS, boost::vecS, boost::undirectedS, user, friendship>;
+	using vertex_descriptor = network::vertex_descriptor;
+	using edge_descriptor = network::edge_descriptor;
 
-class Graph_reader {
-	protected:
-		boost::adjacency_list<boost::setS, boost::vecS, boost::undirectedS, vertex_property, edge_property> g;
-		std::vector<event_location> events;
 
-	public:
-		auto get_graph() {
-			return g;
+	namespace reader {
+		namespace gowalla_austin_dallas {
+			network read_network(std::string edge_file, std::string location_file, std::string events_file);
 		}
 
-		auto get_events() {
-			return events;
+		namespace gowalla {
+			network read_network(std::string edge_file, std::string location_file);
+
 		}
-};
-
-class Gowalla_reader : public Graph_reader {
-	public:
-		bool read_edges(std::string fname);
-		bool read_locations(std::string fname);
-
-	private:
-		// Random number generator for the edge weights
-		std::default_random_engine generator;
-		std::uniform_real_distribution<double> distribution = std::uniform_real_distribution<double>(0.0, 1.0);
-};
-
-class Gowalla_austin_dallas_reader : public Graph_reader {
-	public:
-		bool read_edges(std::string fname);
-		bool read_locations(std::string fname);
-		bool read_events(std::string fname);
-
-	private:
-		// Random number generator for the edge weights
-		std::default_random_engine generator;
-		std::uniform_real_distribution<double> distribution = std::uniform_real_distribution<double>(0.0, 1.0);
-};
+	}
+}
