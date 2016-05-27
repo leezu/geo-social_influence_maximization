@@ -3,6 +3,8 @@
 #include <boost/graph/adjacency_list.hpp>
 #include <boost/spirit/home/x3.hpp>
 #include <boost/fusion/adapted/std_tuple.hpp>
+#include <boost/fusion/adapted/struct/adapt_struct.hpp>
+#include <boost/fusion/include/adapt_struct.hpp>
 #include <boost/iostreams/device/mapped_file.hpp>
 #include <boost/dynamic_bitset.hpp>
 #include <iostream>
@@ -74,6 +76,29 @@ bool Gowalla_austin_dallas_reader::read_locations(std::string fname) {
 		 );
 
 	// Fail if we couldn't parse the whole location file
+	return f == l;
+}
+
+// Declare X3 rules to parse event location
+BOOST_FUSION_ADAPT_STRUCT(
+		event_location,
+		(double, longitude)
+		(double, latitude)
+		)
+
+x3::rule<class event, event_location> const event = "event";
+auto const event_def = x3::double_ >> x3::double_;
+BOOST_SPIRIT_DEFINE(event);
+
+bool Gowalla_austin_dallas_reader::read_events(std::string fname) {
+	// Parse the event locations
+	boost::iostreams::mapped_file_source mm(fname);
+	auto f = mm.begin(), l = mm.end();
+
+	this->events = std::vector<event_location>();
+	x3::phrase_parse(f, l, *event, x3::space, events);
+
+	// Fail if we couldn't parse the whole edges file
 	return f == l;
 }
 

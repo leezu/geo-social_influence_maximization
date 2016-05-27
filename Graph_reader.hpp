@@ -19,13 +19,23 @@ class edge_property {
 		edge_property(): weight(0) {};
 };
 
+struct event_location {
+	double longitude;
+	double latitude;
+};
+
 class Graph_reader {
 	protected:
 		boost::adjacency_list<boost::setS, boost::vecS, boost::undirectedS, vertex_property, edge_property> g;
+		std::vector<event_location> events;
 
 	public:
 		auto get_graph() {
 			return g;
+		}
+
+		auto get_events() {
+			return events;
 		}
 };
 
@@ -44,6 +54,7 @@ class Gowalla_austin_dallas_reader : public Graph_reader {
 	public:
 		bool read_edges(std::string fname);
 		bool read_locations(std::string fname);
+		bool read_events(std::string fname);
 
 	private:
 		// Random number generator for the edge weights
