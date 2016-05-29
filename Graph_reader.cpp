@@ -1,6 +1,8 @@
 #include "Graph_reader.hpp"
+#include "misc.hpp"
 
 #include <boost/graph/adjacency_list.hpp>
+#include <boost/graph/iteration_macros.hpp>
 #include <boost/spirit/home/x3.hpp>
 #include <boost/fusion/adapted/std_tuple.hpp>
 #include <boost/fusion/adapted/struct/adapt_struct.hpp>
@@ -9,6 +11,7 @@
 #include <iostream>
 #include <string>
 #include <stdexcept>
+#include <limits>
 
 
 namespace gsinfmax {
@@ -134,6 +137,28 @@ namespace gsinfmax {
 				return events;
 			}
 
+			void compute_user_importances(const auto events, auto &g) {
+				BGL_FORALL_VERTICES(user, g, network) {
+					for (auto event : events) {
+						auto d = misc::great_circle_length(
+								g[user].latitude,
+								g[user].longitude,
+								event.latitude,
+								event.longitude
+								);
+
+						if (d == 0) {
+							g[user].importances.push_back(std::numeric_limits<double>::max());
+						} else {
+							g[user].importances.push_back(1/d);
+						}
+					}
+				}
+
+				return;
+			};
+
+
 			/**
 			 * Create network from gowalla austin dallas dataset.
 			 */
@@ -142,6 +167,8 @@ namespace gsinfmax {
 				read_locations(location_file, g);
 
 				auto events = read_events(events_file);
+
+				compute_user_importances(events, g);
 
 				std::cout << "Parsed " << boost::num_vertices(g) << " vertices" << std::endl;
 				std::cout << "Parsed " << boost::num_edges(g) << " edges" << std::endl;

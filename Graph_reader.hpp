@@ -10,6 +10,8 @@ namespace gsinfmax {
 			double longitude;
 			double latitude;
 
+			std::vector<double> importances;
+
 			user(): longitude(0), latitude(0) {};
 	};
 
