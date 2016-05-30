@@ -22,12 +22,19 @@ namespace gsinfmax {
 			friendship(): weight(0) {};
 	};
 
-	// Define our graph
-	// We use setS to enforce our graph not to become a multigraph
-	using network = boost::adjacency_list<boost::setS, boost::vecS, boost::undirectedS, user, friendship>;
+	using network = boost::adjacency_list<
+		boost::setS, // This enforces the graph not to become a multigraph
+		boost::vecS,
+		boost::undirectedS,
+		user,
+		friendship,
+		boost::property<boost::graph_name_t, int> // Store the number of parties as graph_name_t
+			>;
 	using vertex_descriptor = network::vertex_descriptor;
 	using edge_descriptor = network::edge_descriptor;
 
+	void set_number_of_parties(const int number_of_parties, network& g);
+	int get_number_of_parties(const network& g);
 
 	namespace reader {
 		namespace gowalla_austin_dallas {
