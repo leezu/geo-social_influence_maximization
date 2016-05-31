@@ -149,6 +149,9 @@ namespace gsinfmax {
 				set_number_of_parties(events.size(), g);
 
 				BGL_FORALL_VERTICES(user, g, network) {
+					g[user].importances = Eigen::ArrayXd(events.size());
+
+					int i {0}; // Loop index
 					for (auto event : events) {
 						auto d = misc::great_circle_length(
 								g[user].latitude,
@@ -158,10 +161,12 @@ namespace gsinfmax {
 								);
 
 						if (d == 0) {
-							g[user].importances.push_back(std::numeric_limits<double>::max());
+							g[user].importances[i] = std::numeric_limits<double>::max();
 						} else {
-							g[user].importances.push_back(1/d);
+							g[user].importances[i] = 1/d;
 						}
+
+						i++;
 					}
 				}
 

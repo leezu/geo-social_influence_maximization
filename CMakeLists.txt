@@ -32,6 +32,9 @@ if (Boost_FOUND)
   #link_directories (${Boost_LIBRARY_DIRS})
 endif ()
 
+find_package(Eigen3 REQUIRED)
+include_directories(SYSTEM ${EIGEN3_INCLUDE_DIR})
+
 # Include boost spirit X3 parser
 set(Spirit_INCLUDE_DIR ${CMAKE_SOURCE_DIR}/lib/spirit/include)
 include_directories(INTERFACE ${Spirit_INCLUDE_DIR})

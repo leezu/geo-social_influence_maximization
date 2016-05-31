@@ -1,6 +1,7 @@
 #pragma once
 
 #include <boost/graph/adjacency_list.hpp>
+#include <Eigen/Core>
 #include <random>
 
 namespace gsinfmax {
@@ -10,7 +11,7 @@ namespace gsinfmax {
 			double longitude;
 			double latitude;
 
-			std::vector<double> importances;
+			Eigen::ArrayXd importances; // X-dimensional vector
 
 			user(): longitude(0), latitude(0) {};
 	};
