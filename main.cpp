@@ -6,6 +6,7 @@
 #include "docopt.h"
 
 #include "Graph_reader.hpp"
+#include "algorithms-lazy_greedy.hpp"
 
 static const char USAGE[] =
 R"(Geo-social influence maximization
@@ -44,6 +45,17 @@ int main(int argc, char* argv[]) {
 				"geo-social influence maximzation 0.1");	// version string
 
 	network g = get_network(args);
+
+	std::vector<int> budgets {1, 2, 3};
+
+	auto lazy_greedy = algorithms::lazy_greedy(g);
+	auto seedset = lazy_greedy.maximize_influence(budgets);
+
+	std::cout << "The seedset contains: ";
+	for (auto& s : seedset) {
+		std::cout << s.first << "<" << s.second << "> ";
+	}
+	std::cout << std::endl;
 
 	return 0;
 }
