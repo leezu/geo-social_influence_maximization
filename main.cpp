@@ -12,24 +12,38 @@ static const char USAGE[] =
     R"(Geo-social influence maximization
 
     Usage:
-      gsinfmax gowalla <edges> <locations>
-      gsinfmax gowalla_austin_dallas <edges> <locations> <events> (--baseline | --adapted)
+      gsinfmax gowalla <edges> <locations> (--random-weights | --edge-weights=<w>) [--random-weights | --edge-weights=<w>]
+      gsinfmax gowalla_austin_dallas <edges> <locations> <events> (--baseline | --adapted) [--random-weights | --edge-weights=<w>]
       gsinfmax (-h | --help)
       gsinfmax --version
 
     Options:
-      -h --help     Show this screen.
-      --version     Show version.
+      -h --help                 Show this screen.
+      --version                 Show version.
+      --edge-weights=<w>        Set edge weights to W (if not specified in dataset)
+                                [default: 0.1]
+      --random-weights          Don't use egde-weights, but generate edge weights uniformly randomly.
 )";
 
 using namespace gsinfmax;
 
+void apply_reader_settings(auto& args, auto& reader) {
+    if (args.at("--random-weights").asLong()) {
+        reader.set_random_weights();
+    }
+    reader.set_weights(std::stod(args.at("--edge-weights").asStringList()[0]));
+}
+
 network get_network(auto args) {
     if (args.at("gowalla").asBool()) {
-        return reader::gowalla::read_network(args["<edges>"].asString(),
-                                             args["<locations>"].asString());
+        reader::gowalla reader;
+        apply_reader_settings(args, reader);
+        return reader.read_network(args["<edges>"].asString(),
+                                   args["<locations>"].asString());
     } else if (args.at("gowalla_austin_dallas").asBool()) {
-        return reader::gowalla_austin_dallas::read_network(
+        reader::gowalla_austin_dallas reader;
+        apply_reader_settings(args, reader);
+        return reader.read_network(
             args["<edges>"].asString(), args["<locations>"].asString(),
             args["<events>"].asString());
     } else {

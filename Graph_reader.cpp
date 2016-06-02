@@ -35,11 +35,14 @@ struct event_location {
 std::default_random_engine generator;
 std::uniform_real_distribution<double> distribution(0.0, 1.0);
 
-namespace gowalla_austin_dallas {
+void generic_reader::set_random_weights() { random_weights = true; }
+void generic_reader::set_no_random_weights() { random_weights = false; }
+void generic_reader::set_weights(double weight) { this->weight = weight; }
+
 /**
  * Construct network by reading edges of the gowalla austin dallas dataset.
  */
-network read_edges(std::string edge_file) {
+network gowalla_austin_dallas::read_edges(std::string edge_file) {
     network g;
 
     // Lambda function that adds edge to graph
@@ -52,7 +55,11 @@ network read_edges(std::string edge_file) {
             auto aer = boost::add_edge(vertex_id, i, g);
 
             friendship edge{};
-            edge.weight = distribution(generator);
+            if (random_weights == true) {
+                edge.weight = distribution(generator);
+            } else {
+                edge.weight = weight;
+            }
 
             g[aer.first] = edge;
         }
@@ -64,7 +71,7 @@ network read_edges(std::string edge_file) {
 
     //               [vertex_id]        [number_of_neigbhors]
     auto n_friends = x3::int_ >> ' ' >> x3::omit[x3::int_] >> ' ' >>
-    //               [neighbor]                 [1]
+                     // [neighbor]                 [1]
                      ((x3::int_ >> ' ' >> x3::omit[x3::int_]) % ' ') >> x3::eol;
     //               [vertex_id]   [0 neigbhors]
     auto zero_friends = x3::int_ >> " 0" >> x3::eol;
@@ -88,7 +95,8 @@ network read_edges(std::string edge_file) {
 /**
  * Read user locations from location file and add them to the network.
  */
-void read_locations(std::string location_file, network &g) {
+void gowalla_austin_dallas::read_locations(std::string location_file,
+                                           network &g) {
     auto add_location = [&](auto &ctx) {
         // _attr(ctx) returns a boost fusion tuple
         auto attr = x3::_attr(ctx);
@@ -130,7 +138,7 @@ BOOST_SPIRIT_DEFINE(event);
 /**
  * Read event locations from file and return vector of event_location.
  */
-auto read_events(std::string events_file) {
+auto gowalla_austin_dallas::read_events(std::string events_file) {
     // Parse the event locations
     boost::iostreams::mapped_file_source mm(events_file);
     auto f = mm.begin(), l = mm.end();
@@ -148,7 +156,8 @@ auto read_events(std::string events_file) {
     return events;
 }
 
-void compute_user_importances(const auto events, auto &g) {
+void gowalla_austin_dallas::compute_user_importances(const auto events,
+                                                     auto &g) {
     set_number_of_colors(events.size(), g);
 
     BGL_FORALL_VERTICES(user, g, network) {
@@ -176,8 +185,9 @@ void compute_user_importances(const auto events, auto &g) {
 /**
  * Create network from gowalla austin dallas dataset.
  */
-network read_network(std::string edge_file, std::string location_file,
-                     std::string events_file) {
+network gowalla_austin_dallas::read_network(std::string edge_file,
+                                            std::string location_file,
+                                            std::string events_file) {
     auto g = read_edges(edge_file);
     read_locations(location_file, g);
 
@@ -191,13 +201,11 @@ network read_network(std::string edge_file, std::string location_file,
 
     return g;
 }
-}
 
-namespace gowalla {
 /**
  * Construct network by reading edges of the gowalla dataset.
  */
-auto read_edges(std::string edge_file) {
+network gowalla::read_edges(std::string edge_file) {
     network g;
 
     // Lambda function that adds edge to graph
@@ -210,7 +218,11 @@ auto read_edges(std::string edge_file) {
         auto aer = boost::add_edge(source, target, g);
 
         friendship edge{};
-        edge.weight = distribution(generator);
+        if (random_weights == true) {
+            edge.weight = distribution(generator);
+        } else {
+            edge.weight = weight;
+        }
 
         g[aer.first] = edge;
     };
@@ -231,7 +243,7 @@ auto read_edges(std::string edge_file) {
     return g;
 }
 
-void read_locations(std::string location_file, network &g) {
+void gowalla::read_locations(std::string location_file, network &g) {
     boost::dynamic_bitset<> location_already_added(num_vertices(g));
 
     auto add_location = [&](auto &ctx) {
@@ -269,9 +281,9 @@ void read_locations(std::string location_file, network &g) {
     x3::parse(f, l,
               // [vertex_id]       [time of checkin]
               *((x3::int_ >> '\t' >> x3::omit[*x3::graph] >> '\t' >>
-              // [latitude]             [longitude]
+                 // [latitude]             [longitude]
                  x3::double_ >> '\t' >> x3::double_)[add_location] >>
-              // [location] id
+                // [location] id
                 '\t' >> x3::int_ >> x3::eol));
 
     std::cout << "Added location to " << location_already_added.count()
@@ -293,7 +305,8 @@ void read_locations(std::string location_file, network &g) {
  * Users will be assigned the location of their first checkin.
  * If a user has never checked in anywhere, his location is set to (0, 0)
  */
-network read_network(std::string edge_file, std::string location_file) {
+network gowalla::read_network(std::string edge_file,
+                              std::string location_file) {
     auto g = read_edges(edge_file);
     read_locations(location_file, g);
 
@@ -302,7 +315,6 @@ network read_network(std::string edge_file, std::string location_file) {
     std::cout << "Parsed " << boost::num_edges(g) << " edges" << std::endl;
 
     return g;
-}
 }
 }
 }
