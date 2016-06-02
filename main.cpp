@@ -55,7 +55,7 @@ int main(int argc, char* argv[]) {
 
 	network g = get_network(args);
 
-	std::vector<int> budgets {1, 2, 3};
+	std::vector<unsigned int> budgets {1, 2, 3};
 
 	auto lazy_greedy = algorithms::lazy_greedy(g);
 

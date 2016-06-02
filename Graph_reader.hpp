@@ -29,13 +29,13 @@ namespace gsinfmax {
 		boost::undirectedS,
 		user,
 		friendship,
-		boost::property<boost::graph_name_t, int> // Store the number of parties as graph_name_t
+		boost::property<boost::graph_name_t, int> // Store the number of colors as graph_name_t
 			>;
 	using vertex_descriptor = network::vertex_descriptor;
 	using edge_descriptor = network::edge_descriptor;
 
-	void set_number_of_parties(const int number_of_parties, network& g);
-	int get_number_of_parties(const network& g);
+	void set_number_of_colors(const int number_of_colors, network& g);
+	int get_number_of_colors(const network& g);
 
 	namespace reader {
 		namespace gowalla_austin_dallas {

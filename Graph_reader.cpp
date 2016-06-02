@@ -15,11 +15,11 @@
 
 
 namespace gsinfmax {
-	void set_number_of_parties(const int number_of_parties, network& g) {
-		get_property(g, boost::graph_name) = number_of_parties;
+	void set_number_of_colors(const int number_of_colors, network& g) {
+		get_property(g, boost::graph_name) = number_of_colors;
 	};
 
-	int get_number_of_parties(const network& g) {
+	int get_number_of_colors(const network& g) {
 		return get_property(g, boost::graph_name);
 	}
 
@@ -146,7 +146,7 @@ namespace gsinfmax {
 			}
 
 			void compute_user_importances(const auto events, auto &g) {
-				set_number_of_parties(events.size(), g);
+				set_number_of_colors(events.size(), g);
 
 				BGL_FORALL_VERTICES(user, g, network) {
 					g[user].importances = Eigen::ArrayXd(events.size());
