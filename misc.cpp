@@ -7,7 +7,7 @@ namespace misc {
 double to_radians(double degree) { return degree * M_PI / 180; }
 
 double great_circle_length(double lat1, double lon1, double lat2, double lon2) {
-    double r{6378137.0}; // earth radius in meter
+    double r{6378.1370}; // earth radius in km
 
     lat1 = to_radians(lat1);
     lon1 = to_radians(lon1);

@@ -321,4 +321,4 @@ network gowalla::read_network(std::string edge_file,
 
 // Register event_location struct with boost fusion
 BOOST_FUSION_ADAPT_STRUCT(gsinfmax::reader::event_location,
-                          (double, longitude)(double, latitude))
+                          (double, latitude)(double, longitude))
