@@ -14,7 +14,7 @@ project(geo-social_influence_maximization VERSION 0.1 LANGUAGES CXX)
 # Include boost graph library
 # Load settings for the external project "Boost".
 # The component "graph" is required.
-find_package (Boost REQUIRED COMPONENTS graph iostreams)
+find_package (Boost REQUIRED COMPONENTS graph iostreams filesystem system)
 if (Boost_FOUND)
   # From the offical documentation:
   # Add include directories to the build. [...] If the SYSTEM option is given,
@@ -44,7 +44,7 @@ include_directories(lib/docopt.cpp)
 add_library(docopt STATIC lib/docopt.cpp/docopt.cpp)
 
 # Add an executable to the project using the specified source files
-set(gsinfmax_SRC main.cpp Graph_reader.cpp misc.cpp algorithms-lazy_greedy.cpp)
+set(gsinfmax_SRC main.cpp Graph_reader.cpp misc.cpp algorithms-lazy_greedy.cpp analysis.cpp)
 add_executable(gsinfmax ${gsinfmax_SRC})
 
 # Link against boost libraries.
