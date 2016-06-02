@@ -13,7 +13,7 @@ R"(Geo-social influence maximization
 
     Usage:
       gsinfmax gowalla <edges> <locations>
-      gsinfmax gowalla_austin_dallas <edges> <locations> <events>
+      gsinfmax gowalla_austin_dallas <edges> <locations> <events> (--baseline | --adapted)
       gsinfmax (-h | --help)
       gsinfmax --version
 
@@ -37,6 +37,15 @@ network get_network(auto args) {
 	}
 }
 
+void print_seedset(auto seedset) {
+	std::cout << "The seedset contains: ";
+	for (auto& s : seedset) {
+		std::cout << s.first << "<" << s.second << "> ";
+	}
+	std::cout << "\n";
+}
+
+
 int main(int argc, char* argv[]) {
 	std::map<std::string, docopt::value> args
 		= docopt::docopt(USAGE,
@@ -49,13 +58,16 @@ int main(int argc, char* argv[]) {
 	std::vector<int> budgets {1, 2, 3};
 
 	auto lazy_greedy = algorithms::lazy_greedy(g);
-	auto seedset = lazy_greedy.maximize_influence(budgets);
 
-	std::cout << "The seedset contains: ";
-	for (auto& s : seedset) {
-		std::cout << s.first << "<" << s.second << "> ";
+	if (args.at("--adapted").asBool()) {
+		std::cout << "Running adapted lazy greedy\n";
+		auto seedset = lazy_greedy.maximize_influence(budgets);
+		print_seedset(seedset);
+	} else if (args.at("--baseline").asBool()) {
+		std::cout << "Running baseline lazy greedy\n";
+		auto seedset = lazy_greedy.maximize_influence_baseline(budgets);
+		print_seedset(seedset);
 	}
-	std::cout << std::endl;
 
 	return 0;
 }

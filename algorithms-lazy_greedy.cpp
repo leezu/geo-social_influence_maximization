@@ -25,6 +25,54 @@ namespace gsinfmax { namespace algorithms {
 		int special_color {-1};
 	}
 
+	std::unordered_map<vertex_descriptor, color> lazy_greedy::maximize_influence_baseline(std::vector<int> budgets) {
+		// Sum of budgets should not exceed network size
+		assert(std::accumulate(budgets.begin(), budgets.end(), 0) <= num_vertices(g));
+
+		int number_of_parties = get_number_of_parties(g);
+		std::unordered_map<vertex_descriptor, color> seedset;
+		assert(budgets.size() == number_of_parties);
+
+		for (int c {0}; c < number_of_parties; c++) {
+			std::unordered_map<vertex_descriptor, color> seedset_c;
+			std::multimap<importance, std::pair<vertex_descriptor, color>> queue_c;
+			int iteration {0};
+
+			// Initially fill queue
+			BGL_FORALL_VERTICES(user, g, network) {
+				// Ignore users, that are already seeds of a different color
+				if (seedset.find(user) == seedset.end()) {
+					auto mgs = marginal_influence_gain(user, seedset_c, seedset);
+					queue_c.insert({mgs[c], {user, iteration}});
+				}
+			}
+
+			while (budgets[c] > 0) {
+				vertex_descriptor user;
+				int user_iteration;
+				std::tie(user, user_iteration) = (*queue_c.begin()).second;
+				queue_c.erase(queue_c.begin());
+
+				if (user_iteration == iteration) {
+					seedset_c.insert({user, c});
+					budgets[c]--;
+					iteration++;
+
+					assert(budgets[c] >= 0);
+				} else {
+					auto mgs = marginal_influence_gain(user, seedset_c, seedset);
+					queue_c.insert({mgs[c], {user, iteration}});
+				}
+			}
+
+			seedset.insert(seedset_c.begin(), seedset_c.end());
+		}
+
+		return seedset;
+	}
+
+
+
 	std::unordered_map<vertex_descriptor, color> lazy_greedy::maximize_influence(std::vector<int> budgets) {
 		// Sum of budgets should not exceed network size
 		assert(std::accumulate(budgets.begin(), budgets.end(), 0) <= num_vertices(g));
@@ -101,7 +149,7 @@ namespace gsinfmax { namespace algorithms {
 	 * The users in ignored (as if they wouldn't exist in the graph).
 	 */
 	std::unordered_map<vertex_descriptor, color> lazy_greedy::random_propagation(const std::unordered_map<vertex_descriptor, color>& S,
-			const std::unordered_set<vertex_descriptor>& ignore) {
+			const std::unordered_map<vertex_descriptor, color>& ignore) {
 		std::unordered_map<vertex_descriptor, color> propagation_set(S);
 		std::queue<std::pair<vertex_descriptor, color>> Q;
 		for (auto& s : S) {
@@ -152,21 +200,22 @@ namespace gsinfmax { namespace algorithms {
 	 * The returned vector contains the marginal influences,
 	 * that u would provide given that it is added with the respective color.
 	 */
-	Eigen::ArrayXd lazy_greedy::marginal_influence_gain(vertex_descriptor u,
-			std::unordered_map<vertex_descriptor, int> S) {
+	Eigen::ArrayXd lazy_greedy::marginal_influence_gain(const vertex_descriptor u,
+			std::unordered_map<vertex_descriptor, color> s,
+			const std::unordered_map<vertex_descriptor, color> ignore) {
 		Eigen::ArrayXd gain = Eigen::ArrayXd::Zero(get_number_of_parties(g));
 
 		for (int iteration {0}; iteration < number_of_mc_sim; iteration++) {
-			auto S_importance = importance_of_user_set(random_propagation(S));
+			auto s_importance = importance_of_user_set(random_propagation(s, ignore));
 
 			// special_color is a special value for importance_of_user_set
 			// The returned vector contains the marginal influences,
 			// that u would provide given that it is added with the respective color.
-			S.insert({u, special_color});
-			auto Su_importance = importance_of_user_set(random_propagation(S));
-			S.erase(u);
+			s.insert({u, special_color});
+			auto su_importance = importance_of_user_set(random_propagation(s, ignore));
+			s.erase(u);
 
-			gain += (Su_importance - S_importance);
+			gain += (su_importance - s_importance);
 		}
 
 		return gain / number_of_mc_sim;
