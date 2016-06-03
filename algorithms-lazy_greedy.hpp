@@ -25,6 +25,8 @@ class lazy_greedy {
     std::default_random_engine generator;
     network g;
 
+    bool statusline_printed {false};
+
     Eigen::ArrayXd marginal_influence_gain(
         const vertex_descriptor u,
         std::unordered_map<vertex_descriptor, int> s =
@@ -38,6 +40,12 @@ class lazy_greedy {
     std::unordered_set<vertex_descriptor>
     random_neighbors(const vertex_descriptor user);
     Eigen::ArrayXd importance_of_user_set(const auto &set);
+
+    void
+    update_statusline_seeds(const int current_seedset_size,
+                            const std::vector<unsigned int> &budgets,
+                            const int number_of_mgs_updates_current_iteration,
+                            const int total_number_of_mgs_updates);
 };
 }
 }

@@ -26,6 +26,26 @@ using importance = double;
 int special_color{-1};
 }
 
+void lazy_greedy::update_statusline_seeds(const int current_seedset_size,
+                                     const std::vector<unsigned int> &budgets,
+                                     const int number_of_mgs_updates_current_iteration,
+                                     const int total_number_of_mgs_updates) {
+    int total_number_of_seeds =
+        current_seedset_size + std::accumulate(budgets.begin(), budgets.end(), 0);
+
+    if (statusline_printed) {
+        std::cout << "\r";
+    } else {
+        statusline_printed = true;
+    }
+
+    std::cout << "Found " << current_seedset_size << " of "
+              << total_number_of_seeds << " Seeds: Updated "
+              << number_of_mgs_updates_current_iteration
+              << " marginal gains this iteration (total: "
+              << total_number_of_mgs_updates << ")" << std::flush;
+}
+
 /**
  * Maximize the influence of the colors according to their budget with the
  * baseline lazy greedy algorithm.
@@ -49,10 +69,16 @@ lazy_greedy::maximize_influence_baseline(std::vector<unsigned int> budgets) {
     std::unordered_map<vertex_descriptor, color> seedset;
     assert(budgets.size() == number_of_colors);
 
+    int total_number_of_mgs_updates {0};
+    int number_of_mgs_updates_this_iteration{0};
     for (int c{0}; c < number_of_colors; c++) {
         std::unordered_map<vertex_descriptor, color> seedset_c;
         std::multimap<importance, std::pair<vertex_descriptor, color>> queue_c;
         int iteration{0};
+
+        update_statusline_seeds(seedset.size(), budgets,
+                                number_of_mgs_updates_this_iteration,
+                                total_number_of_mgs_updates);
 
         // Initially fill queue
         BGL_FORALL_VERTICES(user, g, network) {
@@ -74,15 +100,27 @@ lazy_greedy::maximize_influence_baseline(std::vector<unsigned int> budgets) {
                 budgets[c]--;
                 iteration++;
 
+                number_of_mgs_updates_this_iteration = 0;
+
                 assert(budgets[c] >= 0);
             } else {
                 auto mgs = marginal_influence_gain(user, seedset_c, seedset);
                 queue_c.insert({mgs[c], {user, iteration}});
+
+                total_number_of_mgs_updates++;
+                number_of_mgs_updates_this_iteration++;
             }
+
+            update_statusline_seeds(seedset.size() + seedset_c.size(), budgets,
+                                    number_of_mgs_updates_this_iteration,
+                                    total_number_of_mgs_updates);
         }
 
         seedset.insert(seedset_c.begin(), seedset_c.end());
     }
+
+    // Statusline will not be updated anymore, therefore print newline
+    std::cout << std::endl;
 
     return seedset;
 }
@@ -127,6 +165,13 @@ lazy_greedy::maximize_influence(std::vector<unsigned int> budgets) {
         }
     }
 
+    int total_number_of_mgs_updates {0};
+    int number_of_mgs_updates_this_iteration {0};
+
+    update_statusline_seeds(seedset.size(), budgets,
+                            number_of_mgs_updates_this_iteration,
+                            total_number_of_mgs_updates);
+
     while (std::accumulate(budgets.begin(), budgets.end(), 0) > 0) {
         // Find color c
         // - that still has a budget priority queue
@@ -161,6 +206,8 @@ lazy_greedy::maximize_influence(std::vector<unsigned int> budgets) {
             budgets[c]--;
             iteration++;
 
+            number_of_mgs_updates_this_iteration = 0;
+
             assert(budgets[c] >= 0);
         } else {
             auto mgs = marginal_influence_gain(user, seedset);
@@ -168,8 +215,18 @@ lazy_greedy::maximize_influence(std::vector<unsigned int> budgets) {
                 // Insert the user with updated values
                 queues[i].insert({mgs[i], {user, iteration}});
             }
+
+            total_number_of_mgs_updates++;
+            number_of_mgs_updates_this_iteration++;
         }
+
+        update_statusline_seeds(seedset.size(), budgets,
+                                number_of_mgs_updates_this_iteration,
+                                total_number_of_mgs_updates);
     }
+
+    // Statusline will not be updated anymore, therefore print newline
+    std::cout << std::endl;
 
     return seedset;
 };
