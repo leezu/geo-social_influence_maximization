@@ -46,6 +46,9 @@ class lazy_greedy {
                             const std::vector<unsigned int> &budgets,
                             const int number_of_mgs_updates_current_iteration,
                             const int total_number_of_mgs_updates);
+    Eigen::ArrayXd influence(
+        std::unordered_map<vertex_descriptor, int> seedset,
+        const std::unordered_map<vertex_descriptor, int> ignore);
 };
 }
 }

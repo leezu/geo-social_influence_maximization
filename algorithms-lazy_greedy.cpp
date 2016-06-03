@@ -282,6 +282,23 @@ lazy_greedy::random_neighbors(const vertex_descriptor user) {
 }
 
 /**
+ * Estimate the influence of seedset with monte carlo simulations.
+ */
+Eigen::ArrayXd lazy_greedy::influence(
+    std::unordered_map<vertex_descriptor, color> seedset,
+    const std::unordered_map<vertex_descriptor, color> ignore) {
+    Eigen::ArrayXd influence = Eigen::ArrayXd::Zero(get_number_of_colors(g));
+
+    for (int iteration{0}; iteration < number_of_mc_sim; iteration++) {
+        auto importance = importance_of_user_set(random_propagation(seedset, ignore));
+
+        influence += importance;
+    }
+
+    return influence / number_of_mc_sim;
+}
+
+/**
  * Calculate the marginal influence gain of user u compared to set s, ignoring
  * the set ignore.
  *
