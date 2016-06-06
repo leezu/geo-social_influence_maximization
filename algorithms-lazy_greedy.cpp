@@ -73,7 +73,10 @@ lazy_greedy::maximize_influence_baseline(std::vector<unsigned int> budgets) {
 
     int number_of_colors = get_number_of_colors(g);
     std::unordered_map<vertex_descriptor, color> seedset;
-    assert(budgets.size() == number_of_colors);
+    if (budgets.size() != number_of_colors) {
+        throw std::runtime_error(
+            "The number of budgets does not match the number of colors");
+    }
 
     // Prepare logging
     int total_number_of_mgs_updates{0};
@@ -168,6 +171,10 @@ lazy_greedy::maximize_influence(std::vector<unsigned int> budgets) {
     int number_of_colors = get_number_of_colors(g);
     std::unordered_map<vertex_descriptor, color> seedset;
     int iteration{0};
+    if (budgets.size() != number_of_colors) {
+        throw std::runtime_error(
+            "The number of budgets does not match the number of colors");
+    }
 
     // One Queue per color
     auto queues = std::vector<
