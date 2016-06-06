@@ -2,6 +2,7 @@
 
 #include "Graph_reader.hpp"
 #include "algorithms.hpp"
+#include "analysis.hpp"
 
 #include <Eigen/Core>
 #include <algorithm>
@@ -26,12 +27,17 @@ using importance = double;
 int special_color{-1};
 }
 
-void lazy_greedy::update_statusline_seeds(const int current_seedset_size,
-                                     const std::vector<unsigned int> &budgets,
-                                     const int number_of_mgs_updates_current_iteration,
-                                     const int total_number_of_mgs_updates) {
+void lazy_greedy::disable_generate_statistics() { generate_statistics = false; }
+
+void lazy_greedy::enable_generate_statistics() { generate_statistics = true; }
+
+void lazy_greedy::update_statusline_seeds(
+    const int current_seedset_size, const std::vector<unsigned int> &budgets,
+    const int number_of_mgs_updates_current_iteration,
+    const int total_number_of_mgs_updates) {
     int total_number_of_seeds =
-        current_seedset_size + std::accumulate(budgets.begin(), budgets.end(), 0);
+        current_seedset_size +
+        std::accumulate(budgets.begin(), budgets.end(), 0);
 
     if (statusline_printed) {
         std::cout << "\r";
@@ -69,12 +75,17 @@ lazy_greedy::maximize_influence_baseline(std::vector<unsigned int> budgets) {
     std::unordered_map<vertex_descriptor, color> seedset;
     assert(budgets.size() == number_of_colors);
 
-    int total_number_of_mgs_updates {0};
+    // Prepare logging
+    int total_number_of_mgs_updates{0};
     int number_of_mgs_updates_this_iteration{0};
+    logfile = get_logfile("lazy_greedy_baseline");
+
     for (int c{0}; c < number_of_colors; c++) {
         std::unordered_map<vertex_descriptor, color> seedset_c;
         std::multimap<importance, std::pair<vertex_descriptor, color>> queue_c;
         int iteration{0};
+        current_iteration =
+            iteration; ///< Store iteration in class scope for logging
 
         update_statusline_seeds(seedset.size(), budgets,
                                 number_of_mgs_updates_this_iteration,
@@ -99,6 +110,8 @@ lazy_greedy::maximize_influence_baseline(std::vector<unsigned int> budgets) {
                 seedset_c.insert({user, c});
                 budgets[c]--;
                 iteration++;
+                current_iteration =
+                    iteration; ///< Store iteration in class scope for logging
 
                 number_of_mgs_updates_this_iteration = 0;
 
@@ -116,11 +129,23 @@ lazy_greedy::maximize_influence_baseline(std::vector<unsigned int> budgets) {
                                     total_number_of_mgs_updates);
         }
 
+        // Log the influence estimation of the final local seedset
+        if (generate_statistics) {
+            influence(seedset_c, seedset);
+        }
+
         seedset.insert(seedset_c.begin(), seedset_c.end());
     }
 
     // Statusline will not be updated anymore, therefore print newline
     std::cout << std::endl;
+
+    // Log the influence estimation of the final seedset
+    if (generate_statistics) {
+        current_iteration =
+            -1; ///< -1 denotes that the final seedset is estimated / logged
+        influence(seedset);
+    }
 
     return seedset;
 }
@@ -157,6 +182,12 @@ lazy_greedy::maximize_influence(std::vector<unsigned int> budgets) {
                                                                   // for color c
     }
 
+    // Prepare logging
+    int total_number_of_mgs_updates{0};
+    int number_of_mgs_updates_this_iteration{0};
+    current_iteration = iteration;
+    logfile = get_logfile("lazy_greedy_adapted");
+
     // Initially fill Q
     BGL_FORALL_VERTICES(user, g, network) {
         auto mgs = marginal_influence_gain(user);
@@ -164,9 +195,6 @@ lazy_greedy::maximize_influence(std::vector<unsigned int> budgets) {
             queues[c].insert({mgs[c], {user, iteration}});
         }
     }
-
-    int total_number_of_mgs_updates {0};
-    int number_of_mgs_updates_this_iteration {0};
 
     update_statusline_seeds(seedset.size(), budgets,
                             number_of_mgs_updates_this_iteration,
@@ -205,6 +233,8 @@ lazy_greedy::maximize_influence(std::vector<unsigned int> budgets) {
             seedset.insert({user, c});
             budgets[c]--;
             iteration++;
+            current_iteration =
+                iteration; ///< Store iteration in class scope for logging
 
             number_of_mgs_updates_this_iteration = 0;
 
@@ -227,6 +257,13 @@ lazy_greedy::maximize_influence(std::vector<unsigned int> budgets) {
 
     // Statusline will not be updated anymore, therefore print newline
     std::cout << std::endl;
+
+    // Log the influence estimation of the final seedset
+    if (generate_statistics) {
+        current_iteration =
+            -1; ///< -1 denotes that the final seedset is estimated / logged
+        influence(seedset);
+    }
 
     return seedset;
 };
@@ -285,12 +322,22 @@ lazy_greedy::random_neighbors(const vertex_descriptor user) {
  * Estimate the influence of seedset with monte carlo simulations.
  */
 Eigen::ArrayXd lazy_greedy::influence(
-    std::unordered_map<vertex_descriptor, color> seedset,
-    const std::unordered_map<vertex_descriptor, color> ignore) {
+    const std::unordered_map<vertex_descriptor, color> &seedset,
+    const std::unordered_map<vertex_descriptor, color> &ignore) {
     Eigen::ArrayXd influence = Eigen::ArrayXd::Zero(get_number_of_colors(g));
 
     for (int iteration{0}; iteration < number_of_mc_sim; iteration++) {
-        auto importance = importance_of_user_set(random_propagation(seedset, ignore));
+        auto importance =
+            importance_of_user_set(random_propagation(seedset, ignore));
+
+        // Log all MC simulated influence estimations
+        if (generate_statistics) {
+            logfile << current_iteration << "\t" << iteration << "\t";
+            for (int i{0}; i < importance.size(); i++) {
+                logfile << importance[i] << "\t";
+            }
+            logfile << "\n";
+        }
 
         influence += importance;
     }
@@ -314,6 +361,16 @@ Eigen::ArrayXd lazy_greedy::marginal_influence_gain(
     for (int iteration{0}; iteration < number_of_mc_sim; iteration++) {
         auto s_importance =
             importance_of_user_set(random_propagation(s, ignore));
+
+        // Log all MC simulated influence estimations
+        // Skip logging if s is empty
+        if (generate_statistics && !s.empty()) {
+            logfile << current_iteration << "\t" << iteration << "\t";
+            for (int i{0}; i < s_importance.size(); i++) {
+                logfile << s_importance[i] << "\t";
+            }
+            logfile << "\n";
+        }
 
         // special_color is a special value for importance_of_user_set
         // The returned vector contains the marginal influences,

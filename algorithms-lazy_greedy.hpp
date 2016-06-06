@@ -3,6 +3,7 @@
 #include "Graph_reader.hpp"
 
 #include <Eigen/Core>
+#include <fstream>
 #include <random>
 #include <unordered_map>
 #include <unordered_set>
@@ -16,6 +17,9 @@ class lazy_greedy {
     std::unordered_map<vertex_descriptor, int>
     maximize_influence_baseline(std::vector<unsigned int> budgets);
 
+    void enable_generate_statistics();
+    void disable_generate_statistics();
+
     lazy_greedy(network g) : g(g){};
     lazy_greedy(network g, int mc_sim) : g(g), number_of_mc_sim(mc_sim){};
 
@@ -25,7 +29,11 @@ class lazy_greedy {
     std::default_random_engine generator;
     network g;
 
-    bool statusline_printed {false};
+    bool statusline_printed{false};
+    bool generate_statistics{false};
+    int current_iteration{
+        0}; ///< Stores iteration to facilitate generating statistics
+    std::ofstream logfile;
 
     Eigen::ArrayXd marginal_influence_gain(
         const vertex_descriptor u,
@@ -46,9 +54,10 @@ class lazy_greedy {
                             const std::vector<unsigned int> &budgets,
                             const int number_of_mgs_updates_current_iteration,
                             const int total_number_of_mgs_updates);
-    Eigen::ArrayXd influence(
-        std::unordered_map<vertex_descriptor, int> seedset,
-        const std::unordered_map<vertex_descriptor, int> ignore);
+    Eigen::ArrayXd
+    influence(const std::unordered_map<vertex_descriptor, int> &seedset,
+              const std::unordered_map<vertex_descriptor, int> &ignore =
+                  std::unordered_map<vertex_descriptor, int>());
 };
 }
 }

@@ -70,6 +70,7 @@ int main(int argc, char *argv[]) {
     std::vector<unsigned int> budgets{1, 2, 3};
 
     auto lazy_greedy = algorithms::lazy_greedy(g);
+    lazy_greedy.enable_generate_statistics();
 
     if (args.at("--adapted").asBool()) {
         std::cout << "Running adapted lazy greedy\n";
