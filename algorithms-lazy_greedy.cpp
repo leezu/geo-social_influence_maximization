@@ -8,12 +8,12 @@
 #include <algorithm>
 #include <array>
 #include <boost/graph/iteration_macros.hpp>
+#include <deque>
 #include <functional>
 #include <iostream>
 #include <limits>
 #include <map>
 #include <numeric>
-#include <queue>
 #include <random>
 #include <unordered_map>
 #include <unordered_set>
@@ -277,10 +277,13 @@ std::unordered_map<vertex_descriptor, color> lazy_greedy::random_propagation(
     const std::unordered_map<vertex_descriptor, color> &s,
     const std::unordered_map<vertex_descriptor, color> &ignore) {
     std::unordered_map<vertex_descriptor, color> propagation_set(s);
-    std::queue<std::pair<vertex_descriptor, color>> queue;
+    std::deque<std::pair<vertex_descriptor, color>> queue;
     for (auto &user_color_pair : s) {
-        queue.push(user_color_pair);
+        queue.push_back(user_color_pair);
     }
+
+    // Shuffle queue
+    std::shuffle(queue.begin(), queue.end(), generator);
 
     while (!queue.empty()) {
         auto user_color_pair = queue.front();
@@ -289,11 +292,11 @@ std::unordered_map<vertex_descriptor, color> lazy_greedy::random_propagation(
         for (auto &neighbor : neighbors) {
             if (propagation_set.find(neighbor) == propagation_set.end() &&
                 ignore.find(neighbor) == ignore.end()) {
-                queue.push({neighbor, user_color_pair.second});
+                queue.push_back({neighbor, user_color_pair.second});
                 propagation_set.insert({neighbor, user_color_pair.second});
             }
         }
-        queue.pop();
+        queue.pop_front();
     }
     return propagation_set;
 }
