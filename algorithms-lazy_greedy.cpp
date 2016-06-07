@@ -85,7 +85,9 @@ lazy_greedy::maximize_influence_baseline(std::vector<unsigned int> budgets) {
 
     for (int c{0}; c < number_of_colors; c++) {
         std::unordered_map<vertex_descriptor, color> seedset_c;
-        std::multimap<importance, std::pair<vertex_descriptor, color>> queue_c;
+        std::multimap<importance, std::pair<vertex_descriptor, color>,
+                      std::greater<importance>>
+            queue_c;
         int iteration{0};
         current_iteration =
             iteration; ///< Store iteration in class scope for logging
@@ -178,15 +180,13 @@ lazy_greedy::maximize_influence(std::vector<unsigned int> budgets) {
 
     // One Queue per color
     auto queues = std::vector<
-        std::multimap<importance, std::pair<vertex_descriptor, color>>>(
-        number_of_colors);
+        std::multimap<importance, std::pair<vertex_descriptor, color>,
+                      std::greater<importance>>>(number_of_colors);
     for (int c{0}; c < number_of_colors; c++) {
         queues[c] =
-            std::multimap<importance,
-                          std::pair<vertex_descriptor, color>>(); // Queue of
-                                                                  // users to
-                                                                  // evaluate
-                                                                  // for color c
+            std::multimap<importance, std::pair<vertex_descriptor, color>,
+                          std::greater<importance>>(); // Queue of users to
+                                                       // evaluate for color c
     }
 
     // Prepare logging
