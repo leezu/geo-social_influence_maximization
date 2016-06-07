@@ -40,6 +40,36 @@ void generic_reader::set_no_random_weights() { random_weights = false; }
 void generic_reader::set_weights(double weight) { this->weight = weight; }
 
 /**
+ * Return vertex_descriptor for id (potentially create new vertex_descriptor).
+ *
+ * If id has no associated vertex yet, create a new vertex.
+ * Otherwise simply return the associated vertex.
+ */
+vertex_descriptor generic_reader::map_vertex(int id, network &g) {
+    auto match = mapped_vertices.find(id);
+
+    if (match != mapped_vertices.end()) {
+        return match->second; // vertex already known
+    } else {                  // Otherwise add vertex
+        mapped_vertices[id] = boost::add_vertex(g);
+        return mapped_vertices[id];
+    }
+};
+
+/**
+ * Return vertex_descriptor for id (don't create new vertex_descriptor).
+ *
+ * If id has no associated vertex yet, return null_vertex().
+ * Otherwise simply return the associated vertex.
+ */
+vertex_descriptor generic_reader::mapped_vertex(int id) {
+    auto mapped = mapped_vertices.find(id);
+
+    return mapped == mapped_vertices.end() ? network::null_vertex()
+                                           : mapped->second;
+}
+
+/**
  * Construct network by reading edges of the gowalla austin dallas dataset.
  */
 network gowalla_austin_dallas::read_edges(std::string edge_file) {
@@ -52,7 +82,8 @@ network gowalla_austin_dallas::read_edges(std::string edge_file) {
         auto neighbors = fusion::at_c<1>(attr);
 
         for (auto i : neighbors) {
-            auto aer = boost::add_edge(vertex_id, i, g);
+            auto aer = boost::add_edge(this->map_vertex(vertex_id, g),
+                                       this->map_vertex(i, g), g);
 
             friendship edge{};
             if (random_weights == true) {
@@ -102,12 +133,18 @@ void gowalla_austin_dallas::read_locations(std::string location_file,
         auto attr = x3::_attr(ctx);
         auto vertex_id = fusion::at_c<0>(attr);
 
-        // Add location to the vertex
-        auto &props = g[vertex_id];
-        props.latitude = fusion::at_c<1>(attr);
-        props.longitude = fusion::at_c<2>(attr);
+        // Add location to the user
+        if (this->mapped_vertex(vertex_id) != network::null_vertex() ||
+            drop_users_without_friends == false) {
 
-        return true;
+            auto &props = g[this->map_vertex(vertex_id, g)];
+            props.latitude = fusion::at_c<1>(attr);
+            props.longitude = fusion::at_c<2>(attr);
+
+            return true;
+        } else {
+            return false;
+        }
     };
 
     boost::iostreams::mapped_file_source mm(location_file);
@@ -201,6 +238,12 @@ network gowalla_austin_dallas::read_network(std::string edge_file,
 
     return g;
 }
+void gowalla_austin_dallas::set_drop_users_without_friends() {
+    drop_users_without_friends = true;
+}
+void gowalla_austin_dallas::set_no_drop_users_without_friends() {
+    drop_users_without_friends = false;
+}
 
 /**
  * Construct network by reading edges of the gowalla dataset.
@@ -215,7 +258,8 @@ network gowalla::read_edges(std::string edge_file) {
 
         // Add edge from the vertices returned from context
         fusion::copy(x3::_attr(ctx), tup);
-        auto aer = boost::add_edge(source, target, g);
+        auto aer = boost::add_edge(this->map_vertex(source, g),
+                                   this->map_vertex(target, g), g);
 
         friendship edge{};
         if (random_weights == true) {
@@ -260,14 +304,14 @@ void gowalla::read_locations(std::string location_file, network &g) {
         // Test if vertex is in our graph
         // We are parsing locations from a different file than the graph,
         // so there might be inconsistencies
-        if (network::null_vertex() == vertex_id) {
+        if (network::null_vertex() == this->mapped_vertex(vertex_id)) {
             std::cerr << "Tried to add location to vertex " << vertex_id
                       << ", but this vertex is not in our graph" << std::endl;
             return false;
         }
 
         // Add location to the vertex
-        auto &props = g[vertex_id];
+        auto &props = g[this->map_vertex(vertex_id, g)];
         props.latitude = fusion::at_c<1>(attr);
         props.longitude = fusion::at_c<2>(attr);
 

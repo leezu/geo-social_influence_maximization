@@ -45,6 +45,10 @@ class generic_reader {
   protected:
     bool random_weights{false};
     double weight{0.1};
+    std::unordered_map<int, vertex_descriptor> mapped_vertices;
+
+    vertex_descriptor map_vertex(int id, network &g);
+    vertex_descriptor mapped_vertex(int id);
 };
 
 class gowalla_austin_dallas : public generic_reader {
@@ -52,11 +56,16 @@ class gowalla_austin_dallas : public generic_reader {
     network read_network(std::string edge_file, std::string location_file,
                          std::string events_file);
 
+    void set_drop_users_without_friends();
+    void set_no_drop_users_without_friends();
+
   private:
     network read_edges(std::string edge_file);
     void read_locations(std::string location_file, network &g);
     auto read_events(std::string events_file);
     void compute_user_importances(const auto events, auto &g);
+
+    bool drop_users_without_friends{true};
 };
 
 class gowalla : public generic_reader {
