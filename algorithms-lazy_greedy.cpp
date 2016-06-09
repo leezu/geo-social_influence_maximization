@@ -195,12 +195,20 @@ lazy_greedy::maximize_influence(std::vector<unsigned int> budgets) {
     logfile = get_logfile("lazy_greedy_adapted");
 
     // Initially fill Q
+    auto number_of_users = num_vertices(g);
+    int number_of_initialized_users{0};
     BGL_FORALL_VERTICES(user, g, network) {
+        std::cout << "\rInitialized " << number_of_initialized_users << " of "
+                  << number_of_users << " users." << std::flush;
+
         auto mgs = marginal_influence_gain(user);
         for (int c{0}; c < mgs.size(); c++) {
             queues[c].insert({mgs[c], {user, iteration}});
         }
+
+        number_of_initialized_users++;
     }
+    std::cout << std::endl;
 
     update_statusline_seeds(seedset.size(), budgets,
                             number_of_mgs_updates_this_iteration,
