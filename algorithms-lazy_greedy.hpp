@@ -24,6 +24,16 @@ class lazy_greedy {
     lazy_greedy(network g, int mc_sim) : g(g), number_of_mc_sim(mc_sim){};
 
   private:
+    class logger {
+      public:
+        void sigma_set(const Eigen::ArrayXd &sigma_set, const int &iteration,
+                       const std::string &fname);
+
+      private:
+        std::unordered_map<std::string, std::ofstream> files;
+        std::unordered_set<std::string> initialized;
+    };
+
     int number_of_mc_sim{10'000};
     int number_of_parties;
     std::default_random_engine generator;
@@ -31,9 +41,7 @@ class lazy_greedy {
 
     bool statusline_printed{false};
     bool generate_statistics{false};
-    int current_iteration{
-        0}; ///< Stores iteration to facilitate generating statistics
-    std::ofstream logfile;
+    logger log;
 
     Eigen::ArrayXd marginal_influence_gain(
         const vertex_descriptor u, std::unordered_map<vertex_descriptor, int> s,

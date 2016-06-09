@@ -51,6 +51,26 @@ void lazy_greedy::update_statusline_seeds(
               << total_number_of_mgs_updates << ")" << std::flush;
 }
 
+void lazy_greedy::logger::sigma_set(const Eigen::ArrayXd &sigma_set,
+                                    const int &iteration,
+                                    const std::string &fname) {
+    if (files.find(fname) == files.end()) {
+        files.emplace(fname, get_logfile(fname));
+    }
+
+    auto f = files.find(fname);
+
+    if (initialized.find(fname) == initialized.end()) {
+        // Write header
+        (*f).second << "Iteration\tColor\tInfluence\n";
+        initialized.insert(fname);
+    }
+
+    for (color c{0}; c < sigma_set.size(); c++) {
+        (*f).second << iteration << "\t" << c << "\t" << sigma_set[c] << "\n";
+    }
+}
+
 /**
  * Maximize the influence of the colors according to their budget with the
  * baseline lazy greedy algorithm.
@@ -80,8 +100,8 @@ lazy_greedy::maximize_influence_baseline(std::vector<unsigned int> budgets) {
     // Prepare logging
     int total_number_of_mgs_updates{0};
     int number_of_mgs_updates_this_iteration{0};
-    logfile = get_logfile("lazy_greedy_baseline");
 
+    int total_iteration{0};
     for (int c{0}; c < number_of_colors; c++) {
         std::unordered_map<vertex_descriptor, color> seedset_c;
         Eigen::ArrayXd sigma_seedset_c = Eigen::ArrayXd::Zero(number_of_colors);
@@ -90,8 +110,6 @@ lazy_greedy::maximize_influence_baseline(std::vector<unsigned int> budgets) {
                       std::greater<importance>>
             queue_c;
         int iteration{0};
-        current_iteration =
-            iteration; ///< Store iteration in class scope for logging
 
         update_statusline_seeds(seedset.size(), budgets,
                                 number_of_mgs_updates_this_iteration,
@@ -117,10 +135,23 @@ lazy_greedy::maximize_influence_baseline(std::vector<unsigned int> budgets) {
                 seedset_c.insert({user, c});
                 sigma_seedset_c = influence(seedset_c, seedset);
 
+                if (generate_statistics) {
+                    log.sigma_set(sigma_seedset_c, iteration,
+                                  "baseline_greedy_" + std::to_string(c));
+
+                    // Log influence spread including the seeds of other colors
+                    std::unordered_map<vertex_descriptor, color> tmp_seedset;
+                    tmp_seedset.insert(seedset_c.begin(), seedset_c.end());
+                    tmp_seedset.insert(seedset.begin(), seedset.end());
+
+                    auto sigma_tmp_seedset = influence(tmp_seedset);
+                    log.sigma_set(sigma_tmp_seedset, total_iteration,
+                                  "baseline_greedy");
+                }
+
                 budgets[c]--;
                 iteration++;
-                current_iteration =
-                    iteration; ///< Store iteration in class scope for logging
+                total_iteration++;
 
                 number_of_mgs_updates_this_iteration = 0;
 
@@ -139,23 +170,11 @@ lazy_greedy::maximize_influence_baseline(std::vector<unsigned int> budgets) {
                                     total_number_of_mgs_updates);
         }
 
-        // Log the influence estimation of the final local seedset
-        if (generate_statistics) {
-            influence(seedset_c, seedset);
-        }
-
         seedset.insert(seedset_c.begin(), seedset_c.end());
     }
 
     // Statusline will not be updated anymore, therefore print newline
     std::cout << std::endl;
-
-    // Log the influence estimation of the final seedset
-    if (generate_statistics) {
-        current_iteration =
-            -1; ///< -1 denotes that the final seedset is estimated / logged
-        influence(seedset);
-    }
 
     return seedset;
 }
@@ -199,8 +218,6 @@ lazy_greedy::maximize_influence(std::vector<unsigned int> budgets) {
     // Prepare logging
     int total_number_of_mgs_updates{0};
     int number_of_mgs_updates_this_iteration{0};
-    current_iteration = iteration;
-    logfile = get_logfile("lazy_greedy_adapted");
 
     // Initially fill Q
     auto number_of_users = num_vertices(g);
@@ -255,10 +272,12 @@ lazy_greedy::maximize_influence(std::vector<unsigned int> budgets) {
             seedset.insert({user, c});
             sigma_seedset = influence(seedset);
 
+            if (generate_statistics) {
+                log.sigma_set(sigma_seedset, iteration, "adapted_greedy_");
+            }
+
             budgets[c]--;
             iteration++;
-            current_iteration =
-                iteration; ///< Store iteration in class scope for logging
 
             number_of_mgs_updates_this_iteration = 0;
 
@@ -281,13 +300,6 @@ lazy_greedy::maximize_influence(std::vector<unsigned int> budgets) {
 
     // Statusline will not be updated anymore, therefore print newline
     std::cout << std::endl;
-
-    // Log the influence estimation of the final seedset
-    if (generate_statistics) {
-        current_iteration =
-            -1; ///< -1 denotes that the final seedset is estimated / logged
-        influence(seedset);
-    }
 
     return seedset;
 };
@@ -356,15 +368,6 @@ Eigen::ArrayXd lazy_greedy::influence(
     for (int iteration{0}; iteration < number_of_mc_sim; iteration++) {
         auto importance =
             importance_of_user_set(random_propagation(seedset, ignore));
-
-        // Log all MC simulated influence estimations
-        if (generate_statistics) {
-            logfile << current_iteration << "\t" << iteration << "\t";
-            for (int i{0}; i < importance.size(); i++) {
-                logfile << importance[i] << "\t";
-            }
-            logfile << "\n";
-        }
 
         influence += importance;
     }
@@ -436,7 +439,8 @@ Eigen::ArrayXd lazy_greedy::global_importance_of_user_set(const auto &set) {
 /**
  * Computes the value of a set of users for each color.
  *
- * Returns a vector where each element contains the value of the set for this
+ * Returns a vector where each element contains the value of the set for
+ * this
  * color.
  *
  * Users of special color are added to the value of each of the normal
