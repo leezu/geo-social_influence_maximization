@@ -363,17 +363,19 @@ Eigen::ArrayXd lazy_greedy::influence(
 }
 
 /**
- * Calculate the marginal influence gain of user u compared to set s, ignoring
- * the set ignore.
+ * Calculate the marginal influence gain toward the global target function of
+ * user u compared to set s, ignoring the set ignore.
  *
  * Set s contains colored users, whereas u is uncolored.
- * The returned vector contains the marginal influences,
- * that u would provide given that it is added with the respective color.
+ * The returned vector contains the marginal influence gains toward the global
+ * target function (sum of all colored influences), that u would provide given
+ * that it is added with the respective color.
  */
 Eigen::ArrayXd lazy_greedy::marginal_influence_gain(
     const vertex_descriptor u, std::unordered_map<vertex_descriptor, color> s,
     const std::unordered_map<vertex_descriptor, color> ignore) {
-    Eigen::ArrayXd gain = Eigen::ArrayXd::Zero(get_number_of_colors(g));
+    auto number_of_colors = get_number_of_colors(g);
+    Eigen::ArrayXd gain = Eigen::ArrayXd::Zero(number_of_colors);
 
     for (int iteration{0}; iteration < number_of_mc_sim; iteration++) {
         auto s_importance =
@@ -389,25 +391,56 @@ Eigen::ArrayXd lazy_greedy::marginal_influence_gain(
             logfile << "\n";
         }
 
-        // special_color is a special value for importance_of_user_set
-        // The returned vector contains the marginal influences,
+        // The returned vector contains the influence spread,
         // that u would provide given that it is added with the respective
         // color.
+        // To distinguish u from already colored seed users we set it to
+        // special_color.
         s.insert({u, special_color});
         auto su_importance =
-            importance_of_user_set(random_propagation(s, ignore));
+            global_importance_of_user_set(random_propagation(s, ignore));
         s.erase(u);
 
-        gain += (su_importance - s_importance);
+        gain += (su_importance - s_importance.sum());
     }
 
     return gain / number_of_mc_sim;
 };
 
 /**
- * Computes the importance of a set of users.
+ * Computes the global target function.
  *
- * Users of special color are added to the importance of each of the normal
+ * Returns a vector where each element is the global target function given that
+ * users of special color are taken as the respective color.
+ *
+ * The global target function is the sum of the values of the set for each
+ * color.
+ */
+Eigen::ArrayXd lazy_greedy::global_importance_of_user_set(const auto &set) {
+    std::unordered_map<vertex_descriptor, color> special_users;
+    std::unordered_map<vertex_descriptor, color> colored_users;
+
+    for (const auto &user_color : set) {
+        if (user_color.second == special_color) {
+            special_users.insert(user_color);
+        } else {
+            colored_users.insert(user_color);
+        }
+    }
+
+    auto color_importances = importance_of_user_set(colored_users);
+    auto special_importances = importance_of_user_set(special_users);
+
+    return special_importances + color_importances.sum();
+};
+
+/**
+ * Computes the value of a set of users for each color.
+ *
+ * Returns a vector where each element contains the value of the set for this
+ * color.
+ *
+ * Users of special color are added to the value of each of the normal
  * colors.
  */
 Eigen::ArrayXd lazy_greedy::importance_of_user_set(const auto &set) {

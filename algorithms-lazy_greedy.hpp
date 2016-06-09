@@ -47,6 +47,7 @@ class lazy_greedy {
             std::unordered_map<vertex_descriptor, int>());
     std::unordered_set<vertex_descriptor>
     random_neighbors(const vertex_descriptor user);
+    Eigen::ArrayXd global_importance_of_user_set(const auto &set);
     Eigen::ArrayXd importance_of_user_set(const auto &set);
 
     void
