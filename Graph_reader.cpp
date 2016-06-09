@@ -32,7 +32,7 @@ struct event_location {
 };
 
 // Random number generator for the edge weights
-std::default_random_engine generator;
+std::ranlux24_base generator;
 std::uniform_real_distribution<double> distribution(0.0, 1.0);
 
 void generic_reader::set_random_weights() { random_weights = true; }

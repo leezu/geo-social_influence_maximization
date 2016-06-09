@@ -36,7 +36,7 @@ class lazy_greedy {
 
     int number_of_mc_sim{10'000};
     int number_of_parties;
-    std::default_random_engine generator;
+    std::ranlux24_base generator;
     network g;
 
     bool statusline_printed{false};
