@@ -232,10 +232,6 @@ network gowalla_austin_dallas::read_network(std::string edge_file,
 
     compute_user_importances(events, g);
 
-    std::cout << "Parsed " << boost::num_vertices(g) << " vertices"
-              << std::endl;
-    std::cout << "Parsed " << boost::num_edges(g) << " edges" << std::endl;
-
     return g;
 }
 void gowalla_austin_dallas::set_drop_users_without_friends() {
@@ -353,10 +349,6 @@ network gowalla::read_network(std::string edge_file,
                               std::string location_file) {
     auto g = read_edges(edge_file);
     read_locations(location_file, g);
-
-    std::cout << "Parsed " << boost::num_vertices(g) << " vertices"
-              << std::endl;
-    std::cout << "Parsed " << boost::num_edges(g) << " edges" << std::endl;
 
     return g;
 }
