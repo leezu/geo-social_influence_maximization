@@ -14,7 +14,7 @@ static const char USAGE[] =
 
     Usage:
       gsinfmax gowalla <edges> <locations> (--random-weights | --edge-weights=<w>) [--random-weights | --edge-weights=<w>] [--statistics]
-      gsinfmax gowalla_austin_dallas <edges> <locations> <events> (--baseline | --adapted) [--random-weights | --edge-weights=<w>] [--statistics]
+      gsinfmax gowalla_austin_dallas <edges> <locations> <events> (--baseline | --adapted) [--random-weights | --edge-weights=<w>] [--statistics] [--budget=<k>]
       gsinfmax (-h | --help)
       gsinfmax --version
 
@@ -24,6 +24,8 @@ static const char USAGE[] =
       --edge-weights=<w>        Set edge weights to W (if not specified in dataset)
                                 [default: 0.1]
       --random-weights          Don't use egde-weights, but generate edge weights uniformly randomly.
+      --budget=<k>              Set the budget for each color to k
+                                [default: 3]
       --statistics              Print out statistics for the graph being processed.
 )";
 
@@ -72,7 +74,6 @@ int main(int argc, char *argv[]) {
 
     network g = get_network(args);
 
-    std::vector<unsigned int> budgets{1, 2, 3};
     if (args.at("--statistics").asBool()) {
         write_node_degrees(g);
         std::cout << "Average node degree: " << get_average_node_degree(g)
@@ -81,6 +82,11 @@ int main(int argc, char *argv[]) {
         std::cout << "Graph has " << boost::num_vertices(g) << " vertices"
                   << " and " << boost::num_edges(g) << " edges" << std::endl;
     }
+
+    // Set budgets
+    auto number_of_colors = get_number_of_colors(g);
+    int budget_per_color = args.at("--budget").asLong();
+    std::vector<unsigned int> budgets(number_of_colors, budget_per_color);
 
     auto lazy_greedy = algorithms::lazy_greedy(g);
     lazy_greedy.enable_generate_statistics();
