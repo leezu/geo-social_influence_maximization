@@ -36,9 +36,8 @@ class lazy_greedy {
     std::ofstream logfile;
 
     Eigen::ArrayXd marginal_influence_gain(
-        const vertex_descriptor u,
-        std::unordered_map<vertex_descriptor, int> s =
-            std::unordered_map<vertex_descriptor, int>(),
+        const vertex_descriptor u, std::unordered_map<vertex_descriptor, int> s,
+        Eigen::ArrayXd sigma_s,
         const std::unordered_map<vertex_descriptor, int> ignore =
             std::unordered_map<vertex_descriptor, int>());
     std::unordered_map<vertex_descriptor, int> random_propagation(

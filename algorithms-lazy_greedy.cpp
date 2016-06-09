@@ -84,6 +84,8 @@ lazy_greedy::maximize_influence_baseline(std::vector<unsigned int> budgets) {
 
     for (int c{0}; c < number_of_colors; c++) {
         std::unordered_map<vertex_descriptor, color> seedset_c;
+        Eigen::ArrayXd sigma_seedset_c = Eigen::ArrayXd::Zero(number_of_colors);
+
         std::multimap<importance, std::pair<vertex_descriptor, color>,
                       std::greater<importance>>
             queue_c;
@@ -99,7 +101,8 @@ lazy_greedy::maximize_influence_baseline(std::vector<unsigned int> budgets) {
         BGL_FORALL_VERTICES(user, g, network) {
             // Ignore users, that are already seeds of a different color
             if (seedset.find(user) == seedset.end()) {
-                auto mgs = marginal_influence_gain(user, seedset_c, seedset);
+                auto mgs = marginal_influence_gain(user, seedset_c,
+                                                   sigma_seedset_c, seedset);
                 queue_c.insert({mgs[c], {user, iteration}});
             }
         }
@@ -112,6 +115,8 @@ lazy_greedy::maximize_influence_baseline(std::vector<unsigned int> budgets) {
 
             if (user_iteration == iteration) {
                 seedset_c.insert({user, c});
+                sigma_seedset_c = influence(seedset_c, seedset);
+
                 budgets[c]--;
                 iteration++;
                 current_iteration =
@@ -121,7 +126,8 @@ lazy_greedy::maximize_influence_baseline(std::vector<unsigned int> budgets) {
 
                 assert(budgets[c] >= 0);
             } else {
-                auto mgs = marginal_influence_gain(user, seedset_c, seedset);
+                auto mgs = marginal_influence_gain(user, seedset_c,
+                                                   sigma_seedset_c, seedset);
                 queue_c.insert({mgs[c], {user, iteration}});
 
                 total_number_of_mgs_updates++;
@@ -171,6 +177,8 @@ lazy_greedy::maximize_influence(std::vector<unsigned int> budgets) {
 
     int number_of_colors = get_number_of_colors(g);
     std::unordered_map<vertex_descriptor, color> seedset;
+    Eigen::ArrayXd sigma_seedset = Eigen::ArrayXd::Zero(number_of_colors);
+
     int iteration{0};
     if (budgets.size() != number_of_colors) {
         throw std::runtime_error(
@@ -201,7 +209,7 @@ lazy_greedy::maximize_influence(std::vector<unsigned int> budgets) {
         std::cout << "\rInitialized " << number_of_initialized_users << " of "
                   << number_of_users << " users." << std::flush;
 
-        auto mgs = marginal_influence_gain(user);
+        auto mgs = marginal_influence_gain(user, seedset, sigma_seedset);
         for (int c{0}; c < mgs.size(); c++) {
             queues[c].insert({mgs[c], {user, iteration}});
         }
@@ -245,6 +253,8 @@ lazy_greedy::maximize_influence(std::vector<unsigned int> budgets) {
 
         if (iteration == user_iteration) {
             seedset.insert({user, c});
+            sigma_seedset = influence(seedset);
+
             budgets[c]--;
             iteration++;
             current_iteration =
@@ -254,7 +264,7 @@ lazy_greedy::maximize_influence(std::vector<unsigned int> budgets) {
 
             assert(budgets[c] >= 0);
         } else {
-            auto mgs = marginal_influence_gain(user, seedset);
+            auto mgs = marginal_influence_gain(user, seedset, sigma_seedset);
             for (int i{0}; i < mgs.size(); i++) {
                 // Insert the user with updated values
                 queues[i].insert({mgs[i], {user, iteration}});
@@ -373,35 +383,24 @@ Eigen::ArrayXd lazy_greedy::influence(
  */
 Eigen::ArrayXd lazy_greedy::marginal_influence_gain(
     const vertex_descriptor u, std::unordered_map<vertex_descriptor, color> s,
+    Eigen::ArrayXd sigma_s,
     const std::unordered_map<vertex_descriptor, color> ignore) {
+
     auto number_of_colors = get_number_of_colors(g);
     Eigen::ArrayXd gain = Eigen::ArrayXd::Zero(number_of_colors);
 
     for (int iteration{0}; iteration < number_of_mc_sim; iteration++) {
-        auto s_importance =
-            importance_of_user_set(random_propagation(s, ignore));
-
-        // Log all MC simulated influence estimations
-        // Skip logging if s is empty
-        if (generate_statistics && !s.empty()) {
-            logfile << current_iteration << "\t" << iteration << "\t";
-            for (int i{0}; i < s_importance.size(); i++) {
-                logfile << s_importance[i] << "\t";
-            }
-            logfile << "\n";
-        }
-
         // The returned vector contains the influence spread,
         // that u would provide given that it is added with the respective
         // color.
         // To distinguish u from already colored seed users we set it to
         // special_color.
         s.insert({u, special_color});
-        auto su_importance =
+        auto sigma_su =
             global_importance_of_user_set(random_propagation(s, ignore));
         s.erase(u);
 
-        gain += (su_importance - s_importance.sum());
+        gain += (sigma_su - sigma_s.sum());
     }
 
     return gain / number_of_mc_sim;
