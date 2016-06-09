@@ -1,7 +1,6 @@
 #include "algorithms-lazy_greedy.hpp"
 
 #include "Graph_reader.hpp"
-#include "algorithms.hpp"
 #include "analysis.hpp"
 
 #include <Eigen/Core>
