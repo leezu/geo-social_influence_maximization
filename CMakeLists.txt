@@ -6,6 +6,9 @@ set(CMAKE_EXPORT_COMPILE_COMMANDS 1)
 set(CMAKE_CXX_STANDARD 14)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
+# Options to support profiling
+#set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall -pedantic -Wextra -fno-omit-frame-pointer")
+
 # Enable Release profile (and therefore optimization flags)
 set(CMAKE_BUILD_TYPE Release)
 
