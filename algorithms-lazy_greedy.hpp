@@ -20,6 +20,9 @@ class lazy_greedy {
     void enable_generate_statistics();
     void disable_generate_statistics();
 
+    void enable_statusline();
+    void disable_statusline();
+
     lazy_greedy(network g) : g(g){};
     lazy_greedy(network g, int mc_sim) : g(g), number_of_mc_sim(mc_sim){};
 
@@ -39,6 +42,7 @@ class lazy_greedy {
     std::ranlux24_base generator;
     network g;
 
+    bool statusline_enabled{true};
     bool statusline_printed{false};
     bool generate_statistics{false};
     logger log;

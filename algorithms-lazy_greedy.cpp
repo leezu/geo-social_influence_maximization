@@ -26,8 +26,9 @@ using importance = double;
 int special_color{-1};
 }
 
+void lazy_greedy::disable_statusline() { statusline_enabled = false; }
+void lazy_greedy::enable_statusline() { statusline_enabled = true; }
 void lazy_greedy::disable_generate_statistics() { generate_statistics = false; }
-
 void lazy_greedy::enable_generate_statistics() { generate_statistics = true; }
 
 void lazy_greedy::update_statusline_seeds(
@@ -111,9 +112,11 @@ lazy_greedy::maximize_influence_baseline(std::vector<unsigned int> budgets) {
             queue_c;
         int iteration{0};
 
-        update_statusline_seeds(seedset.size(), budgets,
-                                number_of_mgs_updates_this_iteration,
-                                total_number_of_mgs_updates);
+        if (statusline_enabled) {
+            update_statusline_seeds(seedset.size(), budgets,
+                                    number_of_mgs_updates_this_iteration,
+                                    total_number_of_mgs_updates);
+        }
 
         // Initially fill queue
         BGL_FORALL_VERTICES(user, g, network) {
@@ -165,9 +168,12 @@ lazy_greedy::maximize_influence_baseline(std::vector<unsigned int> budgets) {
                 number_of_mgs_updates_this_iteration++;
             }
 
-            update_statusline_seeds(seedset.size() + seedset_c.size(), budgets,
-                                    number_of_mgs_updates_this_iteration,
-                                    total_number_of_mgs_updates);
+            if (statusline_enabled) {
+                update_statusline_seeds(seedset.size() + seedset_c.size(),
+                                        budgets,
+                                        number_of_mgs_updates_this_iteration,
+                                        total_number_of_mgs_updates);
+            }
         }
 
         seedset.insert(seedset_c.begin(), seedset_c.end());
@@ -235,9 +241,11 @@ lazy_greedy::maximize_influence(std::vector<unsigned int> budgets) {
     }
     std::cout << std::endl;
 
-    update_statusline_seeds(seedset.size(), budgets,
-                            number_of_mgs_updates_this_iteration,
-                            total_number_of_mgs_updates);
+    if (statusline_enabled) {
+        update_statusline_seeds(seedset.size(), budgets,
+                                number_of_mgs_updates_this_iteration,
+                                total_number_of_mgs_updates);
+    }
 
     while (std::accumulate(budgets.begin(), budgets.end(), 0) > 0) {
         // Find color c
@@ -293,9 +301,11 @@ lazy_greedy::maximize_influence(std::vector<unsigned int> budgets) {
             number_of_mgs_updates_this_iteration++;
         }
 
-        update_statusline_seeds(seedset.size(), budgets,
-                                number_of_mgs_updates_this_iteration,
-                                total_number_of_mgs_updates);
+        if (statusline_enabled) {
+            update_statusline_seeds(seedset.size(), budgets,
+                                    number_of_mgs_updates_this_iteration,
+                                    total_number_of_mgs_updates);
+        }
     }
 
     // Statusline will not be updated anymore, therefore print newline

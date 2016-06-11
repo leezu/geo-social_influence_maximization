@@ -13,8 +13,8 @@ static const char USAGE[] =
     R"(Geo-social influence maximization
 
     Usage:
-      gsinfmax gowalla <edges> <locations> (--random-weights | --edge-weights=<w>) [--random-weights | --edge-weights=<w>] [--statistics]
-      gsinfmax gowalla_austin_dallas <edges> <locations> <events> (--baseline | --adapted) [--random-weights | --edge-weights=<w>] [--statistics] [--budget=<k>]
+      gsinfmax gowalla <edges> <locations> (--random-weights | --edge-weights=<w>) [--random-weights | --edge-weights=<w>] [--statistics] [--no-statusline]
+      gsinfmax gowalla_austin_dallas <edges> <locations> <events> (--baseline | --adapted) [--random-weights | --edge-weights=<w>] [--statistics] [--budget=<k>] [--no-statusline]
       gsinfmax (-h | --help)
       gsinfmax --version
 
@@ -26,6 +26,7 @@ static const char USAGE[] =
       --random-weights          Don't use egde-weights, but generate edge weights uniformly randomly.
       --budget=<k>              Set the budget for each color to k
                                 [default: 3]
+      --no-statusline
       --statistics              Print out statistics for the graph being processed.
 )";
 
@@ -90,6 +91,10 @@ int main(int argc, char *argv[]) {
 
     auto lazy_greedy = algorithms::lazy_greedy(g);
     lazy_greedy.enable_generate_statistics();
+
+    if (args.at("--no-statusline").asBool()) {
+        lazy_greedy.disable_statusline()
+    }
 
     if (args.at("--adapted").asBool()) {
         std::cout << "Running adapted lazy greedy\n";
