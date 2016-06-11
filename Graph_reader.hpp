@@ -24,8 +24,7 @@ class friendship {
 };
 
 using network = boost::adjacency_list<
-    boost::setS, // This enforces the graph not to become a multigraph
-    boost::vecS, boost::undirectedS, user, friendship,
+    boost::vecS, boost::vecS, boost::undirectedS, user, friendship,
     boost::property<boost::graph_name_t,
                     int> // Store the number of colors as graph_name_t
     >;
