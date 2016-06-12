@@ -1,6 +1,7 @@
 #pragma once
 
 #include "Graph_reader.hpp"
+#include "algorithms.hpp"
 
 #include <Eigen/Core>
 #include <fstream>
@@ -10,7 +11,7 @@
 
 namespace gsinfmax {
 namespace algorithms {
-class lazy_greedy {
+class lazy_greedy : public influence_maximization_algorithm {
   public:
     std::unordered_map<vertex_descriptor, int>
     maximize_influence(std::vector<unsigned int> budgets);
@@ -23,8 +24,9 @@ class lazy_greedy {
     void enable_statusline();
     void disable_statusline();
 
-    lazy_greedy(network g) : g(g){};
-    lazy_greedy(network g, int mc_sim) : g(g), number_of_mc_sim(mc_sim){};
+    lazy_greedy(network g) : influence_maximization_algorithm(g){};
+    lazy_greedy(network g, int mc_sim)
+        : influence_maximization_algorithm(g), number_of_mc_sim(mc_sim){};
 
   private:
     class logger {
@@ -39,8 +41,6 @@ class lazy_greedy {
 
     int number_of_mc_sim{10'000};
     int number_of_parties;
-    std::ranlux24_base generator;
-    network g;
 
     bool statusline_enabled{true};
     bool statusline_printed{false};
@@ -52,12 +52,6 @@ class lazy_greedy {
         Eigen::ArrayXd sigma_s,
         const std::unordered_map<vertex_descriptor, int> ignore =
             std::unordered_map<vertex_descriptor, int>());
-    std::unordered_map<vertex_descriptor, int> random_propagation(
-        const std::unordered_map<vertex_descriptor, int> &s,
-        const std::unordered_map<vertex_descriptor, int> &ignore =
-            std::unordered_map<vertex_descriptor, int>());
-    std::unordered_set<vertex_descriptor>
-    random_neighbors(const vertex_descriptor user);
     Eigen::ArrayXd global_importance_of_user_set(const auto &set);
     Eigen::ArrayXd importance_of_user_set(const auto &set);
 
