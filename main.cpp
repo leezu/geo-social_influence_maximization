@@ -1,4 +1,5 @@
 #include <boost/graph/adjacency_list.hpp>
+#include <boost/graph/graphviz.hpp>
 #include <fstream>
 #include <iostream>
 #include <string>
@@ -8,36 +9,43 @@
 #include "Graph_reader.hpp"
 #include "algorithms-lazy_greedy.hpp"
 #include "algorithms-rr_sets.hpp"
+#include "algorithms.hpp"
 #include "analysis.hpp"
 
 static const char USAGE[] =
     R"(Geo-social influence maximization
 
     Usage:
-      gsinfmax gowalla <edges> <locations> (--random-weights | --edge-weights=<w>) [--random-weights | --edge-weights=<w>] [--statistics] [--no-statusline]
-      gsinfmax gowalla_austin_dallas <edges> <locations> <events> (--baseline | --adapted | --rr_sets) [--random-weights | --edge-weights=<w>] [--statistics] [--budget=<k>] [--no-statusline]
+      gsinfmax gowalla [options] <edges> <locations>
+      gsinfmax gowalla_austin_dallas [options] <edges> <locations> <events>
       gsinfmax (-h | --help)
       gsinfmax --version
 
     Options:
-      -h --help                 Show this screen.
+      -h, --help                Show this screen.
       --version                 Show version.
-      --edge-weights=<w>        Set edge weights to W (if not specified in dataset)
+      -A, --algorithm=<a>       Use algorithm a. Must be one of ris, classic, naiveclassic
+                                [default: ris]
+      --edge-weights=<w>        Set edge weights to w (if not specified in dataset)
                                 [default: 0.1]
       --random-weights          Don't use egde-weights, but generate edge weights uniformly randomly.
       --budget=<k>              Set the budget for each color to k
                                 [default: 3]
+      --epsilon=<e>             Set epsilon for the algorithms that support it.
+                                [default: 0.1]
+      --delta=<d>               Set delta for the algorithms that support it.
+                                [default: 0.1]
       --no-statusline
       --statistics              Print out statistics for the graph being processed.
+      --export-network          Save network as graphviz file to ./graph. Do not run algorithm.
 )";
-
 using namespace gsinfmax;
 
 void apply_reader_settings(auto &args, auto &reader) {
-    if (args.at("--random-weights").asLong()) {
+    if (args.at("--random-weights").asBool()) {
         reader.set_random_weights();
     }
-    reader.set_weights(std::stod(args.at("--edge-weights").asStringList()[0]));
+    reader.set_weights(std::stod(args.at("--edge-weights").asString()));
 }
 
 network get_network(auto args) {
@@ -76,6 +84,13 @@ int main(int argc, char *argv[]) {
 
     network g = get_network(args);
 
+    if (args.at("--export-network").asBool()) {
+        std::cout << "Exporting network" << std::endl;
+
+        auto graphfile = get_logfile("graph");
+        write_graphviz(graphfile, g);
+    }
+
     if (args.at("--statistics").asBool()) {
         write_node_degrees(g);
         std::cout << "Average node degree: " << get_average_node_degree(g)
@@ -90,27 +105,46 @@ int main(int argc, char *argv[]) {
     int budget_per_color = args.at("--budget").asLong();
     std::vector<unsigned int> budgets(number_of_colors, budget_per_color);
 
-    if (args.at("--adapted").asBool() || args.at("--baseline").asBool()) {
-        auto lazy_greedy = algorithms::lazy_greedy(g);
-        lazy_greedy.enable_generate_statistics();
+    // Get algorithm
+    auto algorithm_name = args.at("--algorithm").asString();
 
+    if (algorithm_name == "classic") {
+        std::cout << "Running adapted lazy greedy\n";
+
+        auto algorithm = algorithms::lazy_greedy(g);
+
+        if (args.at("--statistics").asBool()) {
+            algorithm.enable_generate_statistics();
+        }
         if (args.at("--no-statusline").asBool()) {
-            lazy_greedy.disable_statusline();
+            algorithm.disable_statusline();
         }
 
-        if (args.at("--adapted").asBool()) {
-            std::cout << "Running adapted lazy greedy\n";
-            auto seedset = lazy_greedy.maximize_influence(budgets);
-            print_seedset(seedset);
-        } else if (args.at("--baseline").asBool()) {
-            std::cout << "Running baseline lazy greedy\n";
-            auto seedset = lazy_greedy.maximize_influence_baseline(budgets);
-            print_seedset(seedset);
+        auto seedset = algorithm.maximize_influence(budgets);
+        print_seedset(seedset);
+    } else if (algorithm_name == "naiveclassic") {
+        std::cout << "Running baseline lazy greedy\n";
+
+        auto algorithm = algorithms::lazy_greedy(g);
+
+        if (args.at("--statistics").asBool()) {
+            algorithm.enable_generate_statistics();
         }
-    } else if (args.at("--rr_sets").asBool()) {
-        auto rr_sets = algorithms::rr_sets(g);
-        // auto seedset = rr_sets.maximize_influence(budgets);
-        auto seedset = rr_sets.dssa(budgets, 0.1, 0.1);
+        if (args.at("--no-statusline").asBool()) {
+            algorithm.disable_statusline();
+        }
+
+        auto seedset = algorithm.maximize_influence_baseline(budgets);
+        print_seedset(seedset);
+    } else if (algorithm_name == "ris") {
+        std::cout << "Running RIS\n";
+
+        auto algorithm = algorithms::rr_sets(g);
+
+        double epsilon = std::stod(args.at("--epsilon").asString());
+        double delta = std::stod(args.at("--delta").asString());
+
+        auto seedset = algorithm.dssa(budgets, epsilon, delta);
         print_seedset(seedset);
     }
 
