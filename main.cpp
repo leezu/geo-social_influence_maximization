@@ -7,6 +7,7 @@
 
 #include "Graph_reader.hpp"
 #include "algorithms-lazy_greedy.hpp"
+#include "algorithms-rr_sets.hpp"
 #include "analysis.hpp"
 
 static const char USAGE[] =
@@ -14,7 +15,7 @@ static const char USAGE[] =
 
     Usage:
       gsinfmax gowalla <edges> <locations> (--random-weights | --edge-weights=<w>) [--random-weights | --edge-weights=<w>] [--statistics] [--no-statusline]
-      gsinfmax gowalla_austin_dallas <edges> <locations> <events> (--baseline | --adapted) [--random-weights | --edge-weights=<w>] [--statistics] [--budget=<k>] [--no-statusline]
+      gsinfmax gowalla_austin_dallas <edges> <locations> <events> (--baseline | --adapted | --rr_sets) [--random-weights | --edge-weights=<w>] [--statistics] [--budget=<k>] [--no-statusline]
       gsinfmax (-h | --help)
       gsinfmax --version
 
@@ -89,20 +90,27 @@ int main(int argc, char *argv[]) {
     int budget_per_color = args.at("--budget").asLong();
     std::vector<unsigned int> budgets(number_of_colors, budget_per_color);
 
-    auto lazy_greedy = algorithms::lazy_greedy(g);
-    lazy_greedy.enable_generate_statistics();
+    if (args.at("--adapted").asBool() || args.at("--baseline").asBool()) {
+        auto lazy_greedy = algorithms::lazy_greedy(g);
+        lazy_greedy.enable_generate_statistics();
 
-    if (args.at("--no-statusline").asBool()) {
-        lazy_greedy.disable_statusline()
-    }
+        if (args.at("--no-statusline").asBool()) {
+            lazy_greedy.disable_statusline();
+        }
 
-    if (args.at("--adapted").asBool()) {
-        std::cout << "Running adapted lazy greedy\n";
-        auto seedset = lazy_greedy.maximize_influence(budgets);
-        print_seedset(seedset);
-    } else if (args.at("--baseline").asBool()) {
-        std::cout << "Running baseline lazy greedy\n";
-        auto seedset = lazy_greedy.maximize_influence_baseline(budgets);
+        if (args.at("--adapted").asBool()) {
+            std::cout << "Running adapted lazy greedy\n";
+            auto seedset = lazy_greedy.maximize_influence(budgets);
+            print_seedset(seedset);
+        } else if (args.at("--baseline").asBool()) {
+            std::cout << "Running baseline lazy greedy\n";
+            auto seedset = lazy_greedy.maximize_influence_baseline(budgets);
+            print_seedset(seedset);
+        }
+    } else if (args.at("--rr_sets").asBool()) {
+        auto rr_sets = algorithms::rr_sets(g);
+        // auto seedset = rr_sets.maximize_influence(budgets);
+        auto seedset = rr_sets.dssa(budgets, 0.1, 0.1);
         print_seedset(seedset);
     }
 
