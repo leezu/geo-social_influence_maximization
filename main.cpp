@@ -1,3 +1,4 @@
+#include <boost/chrono.hpp>
 #include <boost/graph/adjacency_list.hpp>
 #include <boost/graph/graphviz.hpp>
 #include <fstream>
@@ -120,6 +121,8 @@ int main(int argc, char *argv[]) {
         edge_weights = "random";
     }
 
+    auto start_time = boost::chrono::process_user_cpu_clock::now();
+
     if (algorithm_name == "classic") {
         std::cout << "Running adapted lazy greedy\n";
 
@@ -142,6 +145,15 @@ int main(int argc, char *argv[]) {
                            << dataset_name << "\t" << i << "\t"
                            << seedset.first[i] << "\n";
         }
+
+        // Log time spent
+        auto time_file = get_logfile("time-classic");
+        auto runtime =
+            boost::chrono::round<boost::chrono::microseconds>(
+                boost::chrono::process_user_cpu_clock::now() - start_time)
+                .count();
+        time_file << budget_per_color << "\t" << edge_weights << "\t"
+                  << dataset_name << "\t" << runtime << "\n";
     } else if (algorithm_name == "naiveclassic") {
         std::cout << "Running baseline lazy greedy\n";
 
@@ -164,6 +176,15 @@ int main(int argc, char *argv[]) {
                            << dataset_name << "\t" << i << "\t"
                            << seedset.first[i] << "\n";
         }
+
+        // Log time spent
+        auto time_file = get_logfile("time-naiveclassic");
+        auto runtime =
+            boost::chrono::round<boost::chrono::microseconds>(
+                boost::chrono::process_user_cpu_clock::now() - start_time)
+                .count();
+        time_file << budget_per_color << "\t" << edge_weights << "\t"
+                  << dataset_name << "\t" << runtime << "\n";
     } else if (algorithm_name == "ris") {
         std::cout << "Running RIS\n";
 
@@ -182,6 +203,16 @@ int main(int argc, char *argv[]) {
                            << epsilon << "\t" << delta << "\t" << dataset_name
                            << "\t" << i << "\t" << seedset.first[i] << "\n";
         }
+
+        // Log time spent
+        auto time_file = get_logfile("time-ris");
+        auto runtime =
+            boost::chrono::round<boost::chrono::microseconds>(
+                boost::chrono::process_user_cpu_clock::now() - start_time)
+                .count();
+        time_file << budget_per_color << "\t" << edge_weights << "\t" << epsilon
+                  << "\t" << delta << "\t" << dataset_name << "\t" << runtime
+                  << "\n";
     }
 
     return 0;

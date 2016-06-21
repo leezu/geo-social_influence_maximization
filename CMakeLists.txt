@@ -11,7 +11,7 @@ project(geo-social_influence_maximization VERSION 0.1 LANGUAGES CXX)
 # Include boost graph library
 # Load settings for the external project "Boost".
 # The component "graph" is required.
-find_package (Boost REQUIRED COMPONENTS graph iostreams filesystem system)
+find_package (Boost REQUIRED COMPONENTS graph iostreams filesystem system chrono)
 if (Boost_FOUND)
   # From the offical documentation:
   # Add include directories to the build. [...] If the SYSTEM option is given,
