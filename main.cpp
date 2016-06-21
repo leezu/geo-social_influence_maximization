@@ -38,6 +38,8 @@ static const char USAGE[] =
       --no-statusline
       --statistics              Print out statistics for the graph being processed.
       --export-network          Save network as graphviz file to ./graph. Do not run algorithm.
+      -N, --dataset-name=<n>    Use this name to identify the dataset used in logfiles.
+                                [default: default]
 )";
 using namespace gsinfmax;
 
@@ -112,6 +114,11 @@ int main(int argc, char *argv[]) {
 
     // Get algorithm
     auto algorithm_name = args.at("--algorithm").asString();
+    auto dataset_name = args.at("--dataset-name").asString();
+    auto edge_weights = args.at("--edge-weights").asString();
+    if (args.at("--random-weights").asBool()) {
+        edge_weights = "random";
+    }
 
     if (algorithm_name == "classic") {
         std::cout << "Running adapted lazy greedy\n";
@@ -127,6 +134,14 @@ int main(int argc, char *argv[]) {
 
         auto seedset = algorithm.maximize_influence(budgets);
         print_seedset(seedset);
+
+        // Create logfile with influences and parameters of the program
+        auto influence_file = get_logfile("influences-classic");
+        for (int i{0}; i < seedset.first.size(); i++) {
+            influence_file << budget_per_color << "\t" << edge_weights << "\t"
+                           << dataset_name << "\t" << i << "\t"
+                           << seedset.first[i] << "\n";
+        }
     } else if (algorithm_name == "naiveclassic") {
         std::cout << "Running baseline lazy greedy\n";
 
@@ -141,6 +156,14 @@ int main(int argc, char *argv[]) {
 
         auto seedset = algorithm.maximize_influence_baseline(budgets);
         print_seedset(seedset);
+
+        // Create logfile with influences and parameters of the program
+        auto influence_file = get_logfile("influences-naiveclassic");
+        for (int i{0}; i < seedset.first.size(); i++) {
+            influence_file << budget_per_color << "\t" << edge_weights << "\t"
+                           << dataset_name << "\t" << i << "\t"
+                           << seedset.first[i] << "\n";
+        }
     } else if (algorithm_name == "ris") {
         std::cout << "Running RIS\n";
 
@@ -151,6 +174,14 @@ int main(int argc, char *argv[]) {
 
         auto seedset = algorithm.dssa(budgets, epsilon, delta);
         print_seedset(seedset);
+
+        // Create logfile with influences and parameters of the program
+        auto influence_file = get_logfile("influences-ris");
+        for (int i{0}; i < seedset.first.size(); i++) {
+            influence_file << budget_per_color << "\t" << edge_weights << "\t"
+                           << epsilon << "\t" << delta << "\t" << dataset_name
+                           << "\t" << i << "\t" << seedset.first[i] << "\n";
+        }
     }
 
     return 0;
