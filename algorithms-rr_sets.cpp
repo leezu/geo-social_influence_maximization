@@ -16,7 +16,7 @@ namespace {
 using hypergraph = std::vector<std::vector<vertex_descriptor>>;
 using color = int;
 }
-std::unordered_map<vertex_descriptor, int>
+std::pair<std::vector<double>, std::unordered_map<vertex_descriptor, int>>
 rr_sets::dssa(std::vector<unsigned int> budgets, double epsilon, double delta) {
     double Lambda = 2.0 * (2 * (std::exp(1)) - 2) * (1 + epsilon) *
                     (1 + epsilon) *
@@ -57,7 +57,13 @@ rr_sets::dssa(std::vector<unsigned int> budgets, double epsilon, double delta) {
 
             if (delta_1 + delta_2 <= delta) {
                 std::cout << "Returning seedset early" << std::endl;
-                return seedset;
+
+                std::vector<double> influences;
+                for (color c{0}; c < number_of_colors; c++) {
+                    influences.push_back(estimate_influence(seedset, c));
+                }
+
+                return {influences, seedset};
             }
         }
 
@@ -67,7 +73,13 @@ rr_sets::dssa(std::vector<unsigned int> budgets, double epsilon, double delta) {
     }
 
     std::cout << "Returning seedset late" << std::endl;
-    return seedset;
+
+    std::vector<double> influences;
+    for (color c{0}; c < number_of_colors; c++) {
+        influences.push_back(estimate_influence(seedset, c));
+    }
+
+    return {influences, seedset};
 }
 /**
  * Doubles the amount of RR-sets for each color that does not yet exceed the

@@ -85,7 +85,7 @@ void lazy_greedy::logger::sigma_set(const Eigen::ArrayXd &sigma_set,
  * color is not taken
  * into account.
  */
-std::unordered_map<vertex_descriptor, color>
+std::pair<std::vector<double>, std::unordered_map<vertex_descriptor, color>>
 lazy_greedy::maximize_influence_baseline(std::vector<unsigned int> budgets) {
     // Sum of budgets should not exceed network size
     assert(std::accumulate(budgets.begin(), budgets.end(), 0) <=
@@ -182,7 +182,13 @@ lazy_greedy::maximize_influence_baseline(std::vector<unsigned int> budgets) {
     // Statusline will not be updated anymore, therefore print newline
     std::cout << std::endl;
 
-    return seedset;
+    auto influences = influence(seedset);
+    std::vector<double> influences_vector;
+    for (color c{0}; c < influences.size(); c++) {
+        influences_vector.push_back(influences[c]);
+    }
+
+    return {influences_vector, seedset};
 }
 
 /**
@@ -194,7 +200,7 @@ lazy_greedy::maximize_influence_baseline(std::vector<unsigned int> budgets) {
  * The adapted algorithm optimizes the global target function (sum of all
  * colors).
  */
-std::unordered_map<vertex_descriptor, color>
+std::pair<std::vector<double>, std::unordered_map<vertex_descriptor, color>>
 lazy_greedy::maximize_influence(std::vector<unsigned int> budgets) {
     // Sum of budgets should not exceed network size
     assert(std::accumulate(budgets.begin(), budgets.end(), 0) <=
@@ -311,7 +317,13 @@ lazy_greedy::maximize_influence(std::vector<unsigned int> budgets) {
     // Statusline will not be updated anymore, therefore print newline
     std::cout << std::endl;
 
-    return seedset;
+    auto influences = influence(seedset);
+    std::vector<double> influences_vector;
+    for (color c{0}; c < influences.size(); c++) {
+        influences_vector.push_back(influences[c]);
+    }
+
+    return {influences_vector, seedset};
 };
 
 /**

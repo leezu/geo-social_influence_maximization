@@ -70,10 +70,15 @@ network get_network(auto args) {
 
 void print_seedset(auto seedset) {
     std::cout << "The seedset contains: ";
-    for (auto &s : seedset) {
+    for (auto &s : seedset.second) {
         std::cout << s.first << "<" << s.second << "> ";
     }
-    std::cout << "\n";
+
+    std::cout << "\nImportances: ";
+    for (auto &s : seedset.first) {
+        std::cout << s << " ";
+    }
+    std::cout << std::endl;
 }
 
 int main(int argc, char *argv[]) {

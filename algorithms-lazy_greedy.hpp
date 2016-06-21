@@ -13,9 +13,9 @@ namespace gsinfmax {
 namespace algorithms {
 class lazy_greedy : public influence_maximization_algorithm {
   public:
-    std::unordered_map<vertex_descriptor, int>
+    std::pair<std::vector<double>, std::unordered_map<vertex_descriptor, int>>
     maximize_influence(std::vector<unsigned int> budgets);
-    std::unordered_map<vertex_descriptor, int>
+    std::pair<std::vector<double>, std::unordered_map<vertex_descriptor, int>>
     maximize_influence_baseline(std::vector<unsigned int> budgets);
 
     void enable_generate_statistics();

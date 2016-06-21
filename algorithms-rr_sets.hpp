@@ -10,7 +10,7 @@ class rr_sets : public influence_maximization_algorithm {
     std::unordered_map<vertex_descriptor, int>
     maximize_influence(std::vector<unsigned int> budgets);
 
-    std::unordered_map<vertex_descriptor, int>
+    std::pair<std::vector<double>, std::unordered_map<vertex_descriptor, int>>
     dssa(std::vector<unsigned int> budgets, double epsilon = 0.1,
          double delta = 0.1);
     rr_sets(network g);
