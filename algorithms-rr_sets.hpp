@@ -16,14 +16,15 @@ class rr_sets : public influence_maximization_algorithm {
     rr_sets(network g);
 
   private:
-    using hypergraph = std::vector<std::vector<vertex_descriptor>>;
+    using vector_vector = std::vector<std::vector<vertex_descriptor>>;
+    using vector_map = std::vector<std::unordered_map<vertex_descriptor, int>>;
 
     std::vector<double> color_sumimportances;
     std::map<color, std::discrete_distribution<>> color_distributions;
-    std::map<color, hypergraph> color_hypergraphs;
-    std::map<color, hypergraph> color_user_rrsets;
-    std::map<color, hypergraph> tmp_color_hypergraphs;
-    std::map<color, hypergraph> tmp_color_user_rrsets;
+    std::map<color, vector_map> color_hypergraphs;
+    std::map<color, vector_vector> color_user_rrsets;
+    std::map<color, vector_map> tmp_color_hypergraphs;
+    std::map<color, vector_vector> tmp_color_user_rrsets;
 
     double
     estimate_influence(std::unordered_map<vertex_descriptor, color> seedset,

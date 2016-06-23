@@ -7,13 +7,15 @@
 #include <cmath>
 #include <iostream>
 #include <iterator>
+#include <limits>
 #include <numeric>
 #include <random>
 
 namespace gsinfmax {
 namespace algorithms {
 namespace {
-using hypergraph = std::vector<std::vector<vertex_descriptor>>;
+using vector_vector = std::vector<std::vector<vertex_descriptor>>;
+using vector_map = std::vector<std::unordered_map<vertex_descriptor, int>>;
 using color = int;
 }
 std::pair<std::vector<double>, std::unordered_map<vertex_descriptor, int>>
@@ -118,14 +120,15 @@ void rr_sets::merge_RR_sets() {
                   std::back_inserter(color_hypergraphs[c]));
 
         for (int i{previous_size}; i < color_hypergraphs[c].size(); i++) {
-            for (vertex_descriptor influencer : color_hypergraphs[c][i]) {
-                color_user_rrsets[c][influencer].push_back(i);
+            for (std::pair<vertex_descriptor, int> influencer_distance :
+                 color_hypergraphs[c][i]) {
+                color_user_rrsets[c][influencer_distance.first].push_back(i);
             }
         }
 
         tmp_color_hypergraphs[c].clear();
         tmp_color_user_rrsets.erase(c);
-        tmp_color_user_rrsets.insert({c, hypergraph(number_of_users)});
+        tmp_color_user_rrsets.insert({c, vector_vector(number_of_users)});
     }
 }
 
@@ -336,11 +339,18 @@ double rr_sets::estimate_influence(
     bool tmp) {
     double c_size{0};
     double all_size{0};
+    int closest_seed_distance{std::numeric_limits<int>::max()};
 
     if (!tmp) {
-        for (auto influencer : color_hypergraphs[c][rrset_id]) {
-            auto seed_it = seedset.find(influencer);
+        for (std::pair<vertex_descriptor, int> influencer_distance :
+             color_hypergraphs[c][rrset_id]) {
+            auto seed_it = seedset.find(influencer_distance.first);
             if (seed_it != seedset.end()) {
+                if (influencer_distance.second < closest_seed_distance) {
+                    closest_seed_distance = influencer_distance.second;
+                    c_size = 0;
+                    all_size = 0;
+                }
                 if ((*seed_it).second == c) {
                     c_size++;
                 }
@@ -348,9 +358,15 @@ double rr_sets::estimate_influence(
             }
         }
     } else {
-        for (auto influencer : tmp_color_hypergraphs[c][rrset_id]) {
-            auto seed_it = seedset.find(influencer);
+        for (std::pair<vertex_descriptor, int> influencer_distance :
+             tmp_color_hypergraphs[c][rrset_id]) {
+            auto seed_it = seedset.find(influencer_distance.first);
             if (seed_it != seedset.end()) {
+                if (influencer_distance.second < closest_seed_distance) {
+                    closest_seed_distance = influencer_distance.second;
+                    c_size = 0;
+                    all_size = 0;
+                }
                 if ((*seed_it).second == c) {
                     c_size++;
                 }
@@ -455,8 +471,10 @@ rr_sets::build_seedset(std::vector<unsigned int> budgets) {
                     // Because the rrsets, that our seed is part of are not
                     // interesting anymore,
                     // we therefore "ignore" them by decreasing the degree.
-                    for (int node : color_hypergraphs[i][rrset_id]) {
-                        color_user_rrsetsdegrees[i][node]--;
+                    for (std::pair<vertex_descriptor, int> influencer_distance :
+                         color_hypergraphs[i][rrset_id]) {
+                        color_user_rrsetsdegrees[i]
+                                                [influencer_distance.first]--;
                     }
                 }
             }
@@ -484,13 +502,13 @@ rr_sets::rr_sets(network g) : influence_maximization_algorithm(g) {
             tmp_importances.begin(), tmp_importances.end(), 0.0));
 
         // Initialize the hypergraphs
-        color_hypergraphs.insert({c, hypergraph{}});
-        tmp_color_hypergraphs.insert({c, hypergraph{}});
+        color_hypergraphs.insert({c, vector_map{}});
+        tmp_color_hypergraphs.insert({c, vector_map{}});
 
         // Initialize the mapping from users to the iterations in which they
         // were influencers
-        color_user_rrsets.insert({c, hypergraph(number_of_users)});
-        tmp_color_user_rrsets.insert({c, hypergraph(number_of_users)});
+        color_user_rrsets.insert({c, vector_vector(number_of_users)});
+        tmp_color_user_rrsets.insert({c, vector_vector(number_of_users)});
     }
 }
 /**
@@ -512,12 +530,15 @@ bool rr_sets::build_hypergraph_r_color(const int r, const color c, bool tmp) {
 
     for (int i{previous_size}; i < r; i++) {
         if (!tmp) {
-            for (vertex_descriptor influencer : color_hypergraphs[c][i]) {
-                color_user_rrsets[c][influencer].push_back(i);
+            for (std::pair<vertex_descriptor, int> influencer_distance :
+                 color_hypergraphs[c][i]) {
+                color_user_rrsets[c][influencer_distance.first].push_back(i);
             }
         } else {
-            for (vertex_descriptor influencer : tmp_color_hypergraphs[c][i]) {
-                tmp_color_user_rrsets[c][influencer].push_back(i);
+            for (std::pair<vertex_descriptor, int> influencer_distance :
+                 tmp_color_hypergraphs[c][i]) {
+                tmp_color_user_rrsets[c][influencer_distance.first].push_back(
+                    i);
             }
         }
     }
@@ -527,22 +548,12 @@ bool rr_sets::build_hypergraph_r_color(const int r, const color c, bool tmp) {
 
 void rr_sets::add_hypergraph_edge(const vertex_descriptor user, const color c,
                                   bool tmp) {
-    std::unordered_map<vertex_descriptor, color> s;
-    s.insert({user, c});
-
-    auto colored_influencers = random_propagation(s);
-    std::vector<vertex_descriptor> influencers;
-    influencers.reserve(colored_influencers.size());
-
-    std::transform(
-        colored_influencers.begin(), colored_influencers.end(),
-        std::back_inserter(influencers),
-        [](const std::pair<vertex_descriptor, color> &e) { return e.first; });
+    auto influencers_distance = reverse_random_propagation(user);
 
     if (!tmp) {
-        color_hypergraphs[c].push_back(influencers);
+        color_hypergraphs[c].push_back(influencers_distance);
     } else {
-        tmp_color_hypergraphs[c].push_back(influencers);
+        tmp_color_hypergraphs[c].push_back(influencers_distance);
     }
 }
 
