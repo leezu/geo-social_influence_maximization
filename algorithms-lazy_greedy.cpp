@@ -26,6 +26,22 @@ using importance = double;
 int special_color{-1};
 }
 
+struct node {
+    vertex_descriptor user;
+    color c;
+    double mgs;
+    int iteration;
+
+    node(vertex_descriptor v, color c, double mgs, int i)
+        : user(v), c(c), mgs(mgs), iteration(i) {}
+};
+
+struct compare_node {
+    bool operator()(const node &n1, const node &n2) const {
+        return n1.mgs < n2.mgs;
+    }
+};
+
 void lazy_greedy::disable_statusline() { statusline_enabled = false; }
 void lazy_greedy::enable_statusline() { statusline_enabled = true; }
 void lazy_greedy::disable_generate_statistics() { generate_statistics = false; }
@@ -216,22 +232,13 @@ lazy_greedy::maximize_influence(std::vector<unsigned int> budgets) {
             "The number of budgets does not match the number of colors");
     }
 
-    // One Queue per color
-    auto queues = std::vector<
-        std::multimap<importance, std::pair<vertex_descriptor, color>,
-                      std::greater<importance>>>(number_of_colors);
-    for (int c{0}; c < number_of_colors; c++) {
-        queues[c] =
-            std::multimap<importance, std::pair<vertex_descriptor, color>,
-                          std::greater<importance>>(); // Queue of users to
-                                                       // evaluate for color c
-    }
+    boost::heap::fibonacci_heap<node, boost::heap::compare<compare_node>> heap;
 
     // Prepare logging
     int total_number_of_mgs_updates{0};
     int number_of_mgs_updates_this_iteration{0};
 
-    // Initially fill Q
+    // Initially fill heap
     auto number_of_users = num_vertices(g);
     int number_of_initialized_users{0};
     BGL_FORALL_VERTICES(user, g, network) {
@@ -239,10 +246,22 @@ lazy_greedy::maximize_influence(std::vector<unsigned int> budgets) {
                   << number_of_users << " users." << std::flush;
 
         auto mgs = marginal_influence_gain(user, seedset, sigma_seedset);
-        for (int c{0}; c < mgs.size(); c++) {
-            queues[c].insert({mgs[c], {user, iteration}});
-        }
+        Eigen::ArrayXd::Index max_index;
+        while (true) {
+            mgs.maxCoeff(&max_index);
 
+            if (budgets[max_index] > 0) {
+                break;
+            } else if (mgs[max_index] ==
+                       std::numeric_limits<double>::lowest()) {
+                // All budgets are 0
+                // return std::make_pair(0, seedset);
+                return {std::vector<double>(number_of_colors), seedset};
+            } else {
+                mgs[max_index] = std::numeric_limits<double>::lowest();
+            }
+        }
+        heap.push({user, (color)max_index, mgs[max_index], iteration});
         number_of_initialized_users++;
     }
     std::cout << std::endl;
@@ -254,54 +273,42 @@ lazy_greedy::maximize_influence(std::vector<unsigned int> budgets) {
     }
 
     while (std::accumulate(budgets.begin(), budgets.end(), 0) > 0) {
-        // Find color c
-        // - that still has a budget priority queue
-        // - whose priority queue has the maximum first element
-        color c{-1};
-        importance current_max = std::numeric_limits<importance>::lowest();
-        for (int i{0}; i < queues.size(); i++) {
-            if (budgets[i] > 0 && (*queues[i].cbegin()).first > current_max) {
-                current_max = (*queues[i].cbegin()).first;
-                c = i;
-            }
-        }
-        assert(c != -1);
+        node top_node = heap.top();
+        heap.pop();
 
-        vertex_descriptor user;
-        int user_iteration;
-        std::tie(user, user_iteration) = (*queues[c].begin()).second;
-
-        // Delete the user in the queue
-        // In other queues the user could be at an arbitrary position
-        for (int i{0}; i < queues.size(); i++) {
-            for (auto it = queues[i].begin();; ++it) {
-                if ((*it).second.first == user) {
-                    queues[i].erase(it);
-                    break;
-                }
-            }
-        }
-
-        if (iteration == user_iteration) {
-            seedset.insert({user, c});
+        if (iteration == top_node.iteration) {
+            seedset.insert({top_node.user, top_node.c});
             sigma_seedset = influence(seedset);
 
             if (generate_statistics) {
                 log.sigma_set(sigma_seedset, iteration, "adapted_greedy_");
             }
 
-            budgets[c]--;
+            budgets[top_node.c]--;
             iteration++;
 
             number_of_mgs_updates_this_iteration = 0;
 
-            assert(budgets[c] >= 0);
+            assert(budgets[top_node.c] >= 0);
         } else {
-            auto mgs = marginal_influence_gain(user, seedset, sigma_seedset);
-            for (int i{0}; i < mgs.size(); i++) {
-                // Insert the user with updated values
-                queues[i].insert({mgs[i], {user, iteration}});
+            auto mgs =
+                marginal_influence_gain(top_node.user, seedset, sigma_seedset);
+
+            Eigen::ArrayXd::Index max_index;
+            while (true) {
+                mgs.maxCoeff(&max_index);
+
+                if (budgets[max_index] > 0) {
+                    break;
+                } else {
+                    assert(mgs[max_index] !=
+                           std::numeric_limits<double>::lowest());
+                    mgs[max_index] = std::numeric_limits<double>::lowest();
+                }
             }
+
+            heap.push(
+                {top_node.user, (color)max_index, mgs[max_index], iteration});
 
             total_number_of_mgs_updates++;
             number_of_mgs_updates_this_iteration++;
