@@ -5,17 +5,14 @@
 
 #include <Eigen/Core>
 #include <algorithm>
-#include <array>
 #include <boost/graph/iteration_macros.hpp>
-#include <deque>
+#include <boost/heap/fibonacci_heap.hpp>
 #include <functional>
 #include <iostream>
 #include <limits>
-#include <map>
 #include <numeric>
 #include <random>
 #include <unordered_map>
-#include <unordered_set>
 
 namespace gsinfmax {
 namespace algorithms {
@@ -95,11 +92,8 @@ void lazy_greedy::logger::sigma_set(const Eigen::ArrayXd &sigma_set,
  * budgets should contain the budget of each color.
  *
  * The baseline algorithm optimizes each color individually.
- * This means, that users that are already selected as seeds of a different
- * color are ignored
- * and especially they expected propagation from those seeds of a different
- * color is not taken
- * into account.
+ * The seeds of colors that were optimized previously are known to the color
+ * that is optimized in the given iteration.
  */
 std::pair<std::vector<double>, std::unordered_map<vertex_descriptor, color>>
 lazy_greedy::maximize_influence_baseline(std::vector<unsigned int> budgets) {
@@ -123,9 +117,8 @@ lazy_greedy::maximize_influence_baseline(std::vector<unsigned int> budgets) {
         std::unordered_map<vertex_descriptor, color> seedset_c;
         Eigen::ArrayXd sigma_seedset_c = Eigen::ArrayXd::Zero(number_of_colors);
 
-        std::multimap<importance, std::pair<vertex_descriptor, color>,
-                      std::greater<importance>>
-            queue_c;
+        boost::heap::fibonacci_heap<node, boost::heap::compare<compare_node>>
+            heap;
         int iteration{0};
 
         if (statusline_enabled) {
@@ -140,18 +133,16 @@ lazy_greedy::maximize_influence_baseline(std::vector<unsigned int> budgets) {
             if (seedset.find(user) == seedset.end()) {
                 auto mgs = marginal_influence_gain(user, seedset_c,
                                                    sigma_seedset_c, seedset);
-                queue_c.insert({mgs[c], {user, iteration}});
+                heap.push({user, c, mgs[c], iteration});
             }
         }
 
         while (budgets[c] > 0) {
-            vertex_descriptor user;
-            int user_iteration;
-            std::tie(user, user_iteration) = (*queue_c.begin()).second;
-            queue_c.erase(queue_c.begin());
+            node top_node = heap.top();
+            heap.pop();
 
-            if (user_iteration == iteration) {
-                seedset_c.insert({user, c});
+            if (top_node.iteration == iteration) {
+                seedset_c.insert({top_node.user, top_node.c});
                 sigma_seedset_c = influence(seedset_c, seedset);
 
                 if (generate_statistics) {
@@ -168,17 +159,17 @@ lazy_greedy::maximize_influence_baseline(std::vector<unsigned int> budgets) {
                                   "baseline_greedy");
                 }
 
-                budgets[c]--;
+                budgets[top_node.c]--;
                 iteration++;
                 total_iteration++;
 
                 number_of_mgs_updates_this_iteration = 0;
 
-                assert(budgets[c] >= 0);
+                assert(budgets[top_node.c] >= 0);
             } else {
-                auto mgs = marginal_influence_gain(user, seedset_c,
+                auto mgs = marginal_influence_gain(top_node.user, seedset_c,
                                                    sigma_seedset_c, seedset);
-                queue_c.insert({mgs[c], {user, iteration}});
+                heap.push({top_node.user, c, mgs[c], iteration});
 
                 total_number_of_mgs_updates++;
                 number_of_mgs_updates_this_iteration++;
