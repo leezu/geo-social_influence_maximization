@@ -350,10 +350,12 @@ ris::estimate_influence(std::unordered_map<vertex_descriptor, color> seedset,
                     c_size = 0;
                     all_size = 0;
                 }
-                if ((*seed_it).second == c) {
-                    c_size++;
+                if (u_d.distance == closest_seed_distance) {
+                    if ((*seed_it).second == c) {
+                        c_size++;
+                    }
+                    all_size++;
                 }
-                all_size++;
             }
         }
     } else {
@@ -365,8 +367,11 @@ ris::estimate_influence(std::unordered_map<vertex_descriptor, color> seedset,
                     c_size = 0;
                     all_size = 0;
                 }
-                if ((*seed_it).second == c) {
-                    c_size++;
+                if (u_d.distance == closest_seed_distance) {
+                    if ((*seed_it).second == c) {
+                        c_size++;
+                    }
+                    all_size++;
                 }
                 all_size++;
             }
