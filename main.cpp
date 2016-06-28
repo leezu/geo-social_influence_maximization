@@ -186,14 +186,12 @@ int main(int argc, char *argv[]) {
         time_file << budget_per_color << "\t" << edge_weights << "\t"
                   << dataset_name << "\t" << runtime << "\n";
     } else if (algorithm_name == "ris") {
-        std::cout << "Running RIS\n";
-
         auto algorithm = algorithms::ris(g);
 
         double epsilon = std::stod(args.at("--epsilon").asString());
         double delta = std::stod(args.at("--delta").asString());
 
-        auto seedset = algorithm.dssa(budgets, epsilon, delta);
+        auto seedset = algorithm.maximize_influence(budgets, epsilon, delta);
         print_seedset(seedset);
 
         // Create logfile with influences and parameters of the program

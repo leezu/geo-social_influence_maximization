@@ -16,7 +16,7 @@ namespace algorithms {
  */
 std::vector<user_distance>
 influence_maximization_algorithm::reverse_random_propagation(
-    vertex_descriptor user) {
+    const vertex_descriptor user) {
     std::vector<user_distance> rr_set;
     rr_set.push_back({user, 0});
 
