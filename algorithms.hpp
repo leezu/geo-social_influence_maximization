@@ -38,7 +38,7 @@ class influence_maximization_algorithm {
         const std::unordered_map<vertex_descriptor, color> &s,
         const std::unordered_map<vertex_descriptor, color> &ignore =
             std::unordered_map<vertex_descriptor, color>());
-    std::unordered_map<vertex_descriptor, int>
+    std::vector<user_distance>
     reverse_random_propagation(vertex_descriptor user);
     std::vector<vertex_descriptor>
     random_neighbors(const vertex_descriptor user);

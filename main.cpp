@@ -188,7 +188,7 @@ int main(int argc, char *argv[]) {
     } else if (algorithm_name == "ris") {
         std::cout << "Running RIS\n";
 
-        auto algorithm = algorithms::rr_sets(g);
+        auto algorithm = algorithms::ris(g);
 
         double epsilon = std::stod(args.at("--epsilon").asString());
         double delta = std::stod(args.at("--delta").asString());

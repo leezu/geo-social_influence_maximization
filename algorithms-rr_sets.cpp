@@ -15,11 +15,11 @@ namespace gsinfmax {
 namespace algorithms {
 namespace {
 using vector_vector = std::vector<std::vector<vertex_descriptor>>;
-using vector_map = std::vector<std::unordered_map<vertex_descriptor, int>>;
+using rr_sets = std::vector<std::vector<user_distance>>;
 using color = int;
 }
 std::pair<std::vector<double>, std::unordered_map<vertex_descriptor, int>>
-rr_sets::dssa(std::vector<unsigned int> budgets, double epsilon, double delta) {
+ris::dssa(std::vector<unsigned int> budgets, double epsilon, double delta) {
     double Lambda = 2.0 * (2 * (std::exp(1)) - 2) * (1 + epsilon) *
                     (1 + epsilon) *
                     std::log(2.0 / delta * 1 / (epsilon * epsilon));
@@ -90,8 +90,8 @@ rr_sets::dssa(std::vector<unsigned int> budgets, double epsilon, double delta) {
  *
  * It does not double the amount, if |Rc| > (8+2ε)Wc*(ln(2/δ)+ln(n over k))/ε².
  */
-bool rr_sets::dssa_double(std::vector<unsigned int> budgets, double epsilon,
-                          double delta) {
+bool ris::dssa_double(std::vector<unsigned int> budgets, double epsilon,
+                      double delta) {
     int number_of_users = num_vertices(g);
     bool doubled{false};
 
@@ -109,7 +109,7 @@ bool rr_sets::dssa_double(std::vector<unsigned int> budgets, double epsilon,
     return doubled;
 }
 
-void rr_sets::merge_RR_sets() {
+void ris::merge_RR_sets() {
     std::cout << "Merging RR sets" << std::endl;
     int number_of_users = num_vertices(g);
     for (color c{0}; c < color_hypergraphs.size(); c++) {
@@ -120,9 +120,8 @@ void rr_sets::merge_RR_sets() {
                   std::back_inserter(color_hypergraphs[c]));
 
         for (int i{previous_size}; i < color_hypergraphs[c].size(); i++) {
-            for (std::pair<vertex_descriptor, int> influencer_distance :
-                 color_hypergraphs[c][i]) {
-                color_user_rrsets[c][influencer_distance.first].push_back(i);
+            for (user_distance &u_d : color_hypergraphs[c][i]) {
+                color_user_rrsets[c][u_d.user].push_back(i);
             }
         }
 
@@ -133,7 +132,7 @@ void rr_sets::merge_RR_sets() {
 }
 
 std::unordered_map<vertex_descriptor, int>
-rr_sets::maximize_influence(std::vector<unsigned int> budgets) {
+ris::maximize_influence(std::vector<unsigned int> budgets) {
     double epsilon = 0.1;
 
     auto opt_lower_bound = estimate_lower_bound(epsilon, budgets);
@@ -145,8 +144,7 @@ rr_sets::maximize_influence(std::vector<unsigned int> budgets) {
 }
 
 std::vector<double>
-rr_sets::estimate_lower_bound(double epsilon,
-                              std::vector<unsigned int> budgets) {
+ris::estimate_lower_bound(double epsilon, std::vector<unsigned int> budgets) {
     auto number_of_colors = get_number_of_colors(g);
     double epsilon_prime = epsilon * std::sqrt(2);
 
@@ -185,9 +183,9 @@ rr_sets::estimate_lower_bound(double epsilon,
  *
  * Returns true, if new RR-sets were created.
  */
-bool rr_sets::assure_theta_i(const std::vector<int> &color_i,
-                             const std::vector<unsigned int> &budgets,
-                             double epsilon_prime) {
+bool ris::assure_theta_i(const std::vector<int> &color_i,
+                         const std::vector<unsigned int> &budgets,
+                         double epsilon_prime) {
     int number_of_users = num_vertices(g);
     bool edges_added{false};
 
@@ -216,9 +214,9 @@ bool rr_sets::assure_theta_i(const std::vector<int> &color_i,
  * Ensure that there are at least R=λ* / OPT_prime RR-sets (according to
  * Equation 6, TangShiXiao2015)
  */
-void rr_sets::theta_based_on_lower_bound(double epsilon,
-                                         std::vector<double> color_OPT_prime,
-                                         std::vector<unsigned int> budgets) {
+void ris::theta_based_on_lower_bound(double epsilon,
+                                     std::vector<double> color_OPT_prime,
+                                     std::vector<unsigned int> budgets) {
     int number_of_colors = get_number_of_colors(g);
     int number_of_users = num_vertices(g);
     double e = std::exp(1);
@@ -241,8 +239,8 @@ void rr_sets::theta_based_on_lower_bound(double epsilon,
 /**
  * Calculate the rrset coverages.
  */
-double rr_sets::coverage(std::unordered_map<vertex_descriptor, color> seedset,
-                         bool tmp) {
+double ris::coverage(std::unordered_map<vertex_descriptor, color> seedset,
+                     bool tmp) {
     double influence{0};
     int number_of_colors = get_number_of_colors(g);
 
@@ -253,8 +251,8 @@ double rr_sets::coverage(std::unordered_map<vertex_descriptor, color> seedset,
     return influence;
 }
 
-double rr_sets::coverage(std::unordered_map<vertex_descriptor, color> seedset,
-                         color c, bool tmp) {
+double ris::coverage(std::unordered_map<vertex_descriptor, color> seedset,
+                     color c, bool tmp) {
     double rrset_sum{0};
     std::unordered_set<int> covered_rrsets;
 
@@ -283,8 +281,9 @@ double rr_sets::coverage(std::unordered_map<vertex_descriptor, color> seedset,
  * The relation to the rrset coverage is only guaranteed to hold in the if all
  * nodes in the seedsets are of the same color.
  */
-double rr_sets::estimate_influence(
-    std::unordered_map<vertex_descriptor, color> seedset, bool tmp) {
+double
+ris::estimate_influence(std::unordered_map<vertex_descriptor, color> seedset,
+                        bool tmp) {
     double influence{0};
     int number_of_colors = get_number_of_colors(g);
 
@@ -295,8 +294,9 @@ double rr_sets::estimate_influence(
     return influence;
 }
 
-double rr_sets::estimate_influence(
-    std::unordered_map<vertex_descriptor, color> seedset, color c, bool tmp) {
+double
+ris::estimate_influence(std::unordered_map<vertex_descriptor, color> seedset,
+                        color c, bool tmp) {
     double rrset_sum{0};
     std::unordered_set<int> covered_rrsets;
 
@@ -334,20 +334,19 @@ double rr_sets::estimate_influence(
  * TODO: We should include only the seeds with the same minimal distance to v
  * (where v is the user from which the rrset was sampled)
  */
-double rr_sets::estimate_influence(
-    std::unordered_map<vertex_descriptor, color> seedset, color c, int rrset_id,
-    bool tmp) {
+double
+ris::estimate_influence(std::unordered_map<vertex_descriptor, color> seedset,
+                        color c, int rrset_id, bool tmp) {
     double c_size{0};
     double all_size{0};
     int closest_seed_distance{std::numeric_limits<int>::max()};
 
     if (!tmp) {
-        for (std::pair<vertex_descriptor, int> influencer_distance :
-             color_hypergraphs[c][rrset_id]) {
-            auto seed_it = seedset.find(influencer_distance.first);
+        for (user_distance &u_d : color_hypergraphs[c][rrset_id]) {
+            auto seed_it = seedset.find(u_d.user);
             if (seed_it != seedset.end()) {
-                if (influencer_distance.second < closest_seed_distance) {
-                    closest_seed_distance = influencer_distance.second;
+                if (u_d.distance < closest_seed_distance) {
+                    closest_seed_distance = u_d.distance;
                     c_size = 0;
                     all_size = 0;
                 }
@@ -358,12 +357,11 @@ double rr_sets::estimate_influence(
             }
         }
     } else {
-        for (std::pair<vertex_descriptor, int> influencer_distance :
-             tmp_color_hypergraphs[c][rrset_id]) {
-            auto seed_it = seedset.find(influencer_distance.first);
+        for (user_distance &u_d : tmp_color_hypergraphs[c][rrset_id]) {
+            auto seed_it = seedset.find(u_d.user);
             if (seed_it != seedset.end()) {
-                if (influencer_distance.second < closest_seed_distance) {
-                    closest_seed_distance = influencer_distance.second;
+                if (u_d.distance < closest_seed_distance) {
+                    closest_seed_distance = u_d.distance;
                     c_size = 0;
                     all_size = 0;
                 }
@@ -382,7 +380,7 @@ double rr_sets::estimate_influence(
 /**
  * Extract the number of rr_sets each user is in for each color
  */
-std::vector<std::vector<int>> rr_sets::get_color_user_rrsetdegrees() {
+std::vector<std::vector<int>> ris::get_color_user_rrsetdegrees() {
     int number_of_colors = get_number_of_colors(g);
     int number_of_users = num_vertices(g);
     std::vector<std::vector<int>> color_user_rrsetsdegrees(number_of_colors);
@@ -405,7 +403,7 @@ std::vector<std::vector<int>> rr_sets::get_color_user_rrsetdegrees() {
  *
  * Given that the color still has a budget left.
  */
-std::pair<vertex_descriptor, color> rr_sets::get_best_user_color(
+std::pair<vertex_descriptor, color> ris::get_best_user_color(
     const std::vector<unsigned int> budgets,
     const std::vector<std::vector<int>> color_user_rrsetsdegrees) {
     auto number_of_colors = get_number_of_colors(g);
@@ -433,7 +431,7 @@ std::pair<vertex_descriptor, color> rr_sets::get_best_user_color(
 }
 
 std::unordered_map<vertex_descriptor, int>
-rr_sets::build_seedset(std::vector<unsigned int> budgets) {
+ris::build_seedset(std::vector<unsigned int> budgets) {
     int number_of_colors = get_number_of_colors(g);
     std::unordered_map<vertex_descriptor, color> seedset;
 
@@ -471,10 +469,8 @@ rr_sets::build_seedset(std::vector<unsigned int> budgets) {
                     // Because the rrsets, that our seed is part of are not
                     // interesting anymore,
                     // we therefore "ignore" them by decreasing the degree.
-                    for (std::pair<vertex_descriptor, int> influencer_distance :
-                         color_hypergraphs[i][rrset_id]) {
-                        color_user_rrsetsdegrees[i]
-                                                [influencer_distance.first]--;
+                    for (user_distance &u_d : color_hypergraphs[i][rrset_id]) {
+                        color_user_rrsetsdegrees[i][u_d.user]--;
                     }
                 }
             }
@@ -484,7 +480,7 @@ rr_sets::build_seedset(std::vector<unsigned int> budgets) {
     return seedset;
 }
 
-rr_sets::rr_sets(network g) : influence_maximization_algorithm(g) {
+ris::ris(network g) : influence_maximization_algorithm(g) {
     int number_of_colors = get_number_of_colors(g);
     int number_of_users = num_vertices(g);
 
@@ -502,8 +498,8 @@ rr_sets::rr_sets(network g) : influence_maximization_algorithm(g) {
             tmp_importances.begin(), tmp_importances.end(), 0.0));
 
         // Initialize the hypergraphs
-        color_hypergraphs.insert({c, vector_map{}});
-        tmp_color_hypergraphs.insert({c, vector_map{}});
+        color_hypergraphs.insert({c, rr_sets{}});
+        tmp_color_hypergraphs.insert({c, rr_sets{}});
 
         // Initialize the mapping from users to the iterations in which they
         // were influencers
@@ -516,7 +512,7 @@ rr_sets::rr_sets(network g) : influence_maximization_algorithm(g) {
  *
  * Returns true, if new edges were added.
  */
-bool rr_sets::build_hypergraph_r_color(const int r, const color c, bool tmp) {
+bool ris::build_hypergraph_r_color(const int r, const color c, bool tmp) {
     int previous_size = color_hypergraphs[c].size();
     if (tmp) {
         previous_size = tmp_color_hypergraphs[c].size();
@@ -530,15 +526,12 @@ bool rr_sets::build_hypergraph_r_color(const int r, const color c, bool tmp) {
 
     for (int i{previous_size}; i < r; i++) {
         if (!tmp) {
-            for (std::pair<vertex_descriptor, int> influencer_distance :
-                 color_hypergraphs[c][i]) {
-                color_user_rrsets[c][influencer_distance.first].push_back(i);
+            for (user_distance &u_d : color_hypergraphs[c][i]) {
+                color_user_rrsets[c][u_d.user].push_back(i);
             }
         } else {
-            for (std::pair<vertex_descriptor, int> influencer_distance :
-                 tmp_color_hypergraphs[c][i]) {
-                tmp_color_user_rrsets[c][influencer_distance.first].push_back(
-                    i);
+            for (user_distance &u_d : tmp_color_hypergraphs[c][i]) {
+                tmp_color_user_rrsets[c][u_d.user].push_back(i);
             }
         }
     }
@@ -546,8 +539,8 @@ bool rr_sets::build_hypergraph_r_color(const int r, const color c, bool tmp) {
     return edges_added;
 }
 
-void rr_sets::add_hypergraph_edge(const vertex_descriptor user, const color c,
-                                  bool tmp) {
+void ris::add_hypergraph_edge(const vertex_descriptor user, const color c,
+                              bool tmp) {
     auto influencers_distance = reverse_random_propagation(user);
 
     if (!tmp) {
@@ -557,11 +550,11 @@ void rr_sets::add_hypergraph_edge(const vertex_descriptor user, const color c,
     }
 }
 
-vertex_descriptor rr_sets::random_user(const color c) {
+vertex_descriptor ris::random_user(const color c) {
     return color_distributions[c](generator);
 }
 
-double rr_sets::Math::logcnk(int n, int k) {
+double ris::Math::logcnk(int n, int k) {
     double ans = 0;
     for (int i = n - k + 1; i <= n; i++) {
         ans += std::log(i);

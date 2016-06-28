@@ -14,30 +14,34 @@ namespace algorithms {
  *
  * Returns a map from users to the iteration in which they were added.
  */
-std::unordered_map<vertex_descriptor, int>
+std::vector<user_distance>
 influence_maximization_algorithm::reverse_random_propagation(
     vertex_descriptor user) {
-    std::unordered_map<vertex_descriptor, int> propagation_set;
-    propagation_set.insert({user, 0});
+    std::vector<user_distance> rr_set;
+    rr_set.push_back({user, 0});
 
-    std::deque<std::pair<vertex_descriptor, int>> queue;
+    std::deque<user_distance> queue;
     queue.push_back({user, 0});
 
     while (!queue.empty()) {
-        auto user_iteration_pair = queue.front();
+        auto u_d = queue.front();
 
-        auto neighbors = reverse_random_neighbors(user_iteration_pair.first);
+        auto neighbors = reverse_random_neighbors(u_d.user);
         for (auto &neighbor : neighbors) {
-            if (propagation_set.find(neighbor) == propagation_set.end()) {
-                queue.push_back({neighbor, user_iteration_pair.second + 1});
-                propagation_set.insert(
-                    {neighbor, user_iteration_pair.second + 1});
+            auto same_user = [&neighbor](auto element) {
+                return element.user == neighbor;
+            };
+
+            if (std::find_if(rr_set.begin(), rr_set.end(), same_user) ==
+                rr_set.end()) {
+                queue.push_back({neighbor, u_d.distance + 1});
+                rr_set.push_back({neighbor, u_d.distance + 1});
             }
         }
         queue.pop_front();
     }
 
-    return propagation_set;
+    return rr_set;
 }
 /**
  * Perform a single simulation for the each user in the set s.

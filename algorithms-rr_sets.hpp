@@ -5,7 +5,7 @@
 
 namespace gsinfmax {
 namespace algorithms {
-class rr_sets : public influence_maximization_algorithm {
+class ris : public influence_maximization_algorithm {
   public:
     std::unordered_map<vertex_descriptor, int>
     maximize_influence(std::vector<unsigned int> budgets);
@@ -13,17 +13,17 @@ class rr_sets : public influence_maximization_algorithm {
     std::pair<std::vector<double>, std::unordered_map<vertex_descriptor, int>>
     dssa(std::vector<unsigned int> budgets, double epsilon = 0.1,
          double delta = 0.1);
-    rr_sets(network g);
+    ris(network g);
 
   private:
     using vector_vector = std::vector<std::vector<vertex_descriptor>>;
-    using vector_map = std::vector<std::unordered_map<vertex_descriptor, int>>;
+    using rr_sets = std::vector<std::vector<user_distance>>;
 
     std::vector<double> color_sumimportances;
     std::map<color, std::discrete_distribution<>> color_distributions;
-    std::map<color, vector_map> color_hypergraphs;
+    std::map<color, rr_sets> color_hypergraphs;
     std::map<color, vector_vector> color_user_rrsets;
-    std::map<color, vector_map> tmp_color_hypergraphs;
+    std::map<color, rr_sets> tmp_color_hypergraphs;
     std::map<color, vector_vector> tmp_color_user_rrsets;
 
     double
