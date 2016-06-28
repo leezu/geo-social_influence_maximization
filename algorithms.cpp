@@ -1,8 +1,10 @@
 #include "algorithms.hpp"
 #include "Graph_reader.hpp"
 
+#include <algorithm>
 #include <boost/graph/iteration_macros.hpp>
 #include <unordered_map>
+#include <vector>
 
 namespace gsinfmax {
 namespace algorithms {
@@ -42,14 +44,13 @@ influence_maximization_algorithm::reverse_random_propagation(
  *
  * The users in ignore are ignored (as if they wouldn't exist in the graph).
  */
-std::unordered_map<vertex_descriptor, influence_maximization_algorithm::color>
-influence_maximization_algorithm::random_propagation(
+std::vector<user_color> influence_maximization_algorithm::random_propagation(
     const std::unordered_map<vertex_descriptor, color> &s,
     const std::unordered_map<vertex_descriptor, color> &ignore) {
-    std::unordered_map<vertex_descriptor, color> propagation_set(s);
-    std::deque<std::pair<vertex_descriptor, color>> queue;
-    for (auto &user_color_pair : s) {
-        queue.push_back(user_color_pair);
+    std::vector<user_color> propagation_set(s.begin(), s.end());
+    std::deque<user_color> queue;
+    for (auto &u_c : propagation_set) {
+        queue.push_back(u_c);
     }
 
     // Shuffle queue
@@ -58,12 +59,17 @@ influence_maximization_algorithm::random_propagation(
     while (!queue.empty()) {
         auto user_color_pair = queue.front();
 
-        auto neighbors = random_neighbors(user_color_pair.first);
+        auto neighbors = random_neighbors(user_color_pair.user);
         for (auto &neighbor : neighbors) {
-            if (propagation_set.find(neighbor) == propagation_set.end() &&
+            auto same_user = [&neighbor](auto element) {
+                return element.user == neighbor;
+            };
+
+            if (std::find_if(propagation_set.begin(), propagation_set.end(),
+                             same_user) == propagation_set.end() &&
                 ignore.find(neighbor) == ignore.end()) {
-                queue.push_back({neighbor, user_color_pair.second});
-                propagation_set.insert({neighbor, user_color_pair.second});
+                queue.push_back({neighbor, user_color_pair.color});
+                propagation_set.push_back({neighbor, user_color_pair.color});
             }
         }
         queue.pop_front();

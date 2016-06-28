@@ -52,8 +52,9 @@ class lazy_greedy : public influence_maximization_algorithm {
         Eigen::ArrayXd sigma_s,
         const std::unordered_map<vertex_descriptor, int> ignore =
             std::unordered_map<vertex_descriptor, int>());
-    Eigen::ArrayXd global_importance_of_user_set(const auto &set);
-    Eigen::ArrayXd importance_of_user_set(const auto &set);
+    Eigen::ArrayXd
+    global_importance_of_user_set(const std::vector<user_color> &set);
+    Eigen::ArrayXd importance_of_user_set(const std::vector<user_color> &set);
 
     void
     update_statusline_seeds(const int current_seedset_size,

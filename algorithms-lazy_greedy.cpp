@@ -385,15 +385,16 @@ Eigen::ArrayXd lazy_greedy::marginal_influence_gain(
  * The global target function is the sum of the values of the set for each
  * color.
  */
-Eigen::ArrayXd lazy_greedy::global_importance_of_user_set(const auto &set) {
-    std::unordered_map<vertex_descriptor, color> special_users;
-    std::unordered_map<vertex_descriptor, color> colored_users;
+Eigen::ArrayXd
+lazy_greedy::global_importance_of_user_set(const std::vector<user_color> &set) {
+    std::vector<user_color> special_users;
+    std::vector<user_color> colored_users;
 
-    for (const auto &user_color : set) {
-        if (user_color.second == special_color) {
-            special_users.insert(user_color);
+    for (const auto &u_c : set) {
+        if (u_c.color == special_color) {
+            special_users.push_back(u_c);
         } else {
-            colored_users.insert(user_color);
+            colored_users.push_back(u_c);
         }
     }
 
@@ -413,18 +414,16 @@ Eigen::ArrayXd lazy_greedy::global_importance_of_user_set(const auto &set) {
  * Users of special color are added to the value of each of the normal
  * colors.
  */
-Eigen::ArrayXd lazy_greedy::importance_of_user_set(const auto &set) {
+Eigen::ArrayXd
+lazy_greedy::importance_of_user_set(const std::vector<user_color> &set) {
     int number_of_colors = get_number_of_colors(g);
     Eigen::ArrayXd importances = Eigen::ArrayXd::Zero(number_of_colors);
 
-    for (const auto &user_color : set) {
-        vertex_descriptor user = user_color.first;
-        color c = user_color.second;
-
-        if (c != special_color) {
-            importances[c] += g[user].importances[c];
+    for (const auto &u_c : set) {
+        if (u_c.color != special_color) {
+            importances[u_c.color] += g[u_c.user].importances[u_c.color];
         } else {
-            importances += g[user].importances;
+            importances += g[u_c.user].importances;
         }
     }
 
