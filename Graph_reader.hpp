@@ -40,10 +40,12 @@ class generic_reader {
     void set_random_weights();
     void set_no_random_weights();
     void set_weights(double weight);
+    void limit_colors(int limit);
 
   protected:
     bool random_weights{false};
     double weight{0.1};
+    int color_limit{0};
     std::unordered_map<int, vertex_descriptor> mapped_vertices;
 
     vertex_descriptor map_vertex(int id, network &g);

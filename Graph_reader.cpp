@@ -38,6 +38,7 @@ std::uniform_real_distribution<double> distribution(0.0, 1.0);
 void generic_reader::set_random_weights() { random_weights = true; }
 void generic_reader::set_no_random_weights() { random_weights = false; }
 void generic_reader::set_weights(double weight) { this->weight = weight; }
+void generic_reader::limit_colors(int limit) { this->color_limit = limit; }
 
 /**
  * Return vertex_descriptor for id (potentially create new vertex_descriptor).
@@ -188,6 +189,10 @@ auto gowalla_austin_dallas::read_events(std::string events_file) {
             "Could only parse " + std::to_string(std::distance(mm.begin(), f)) +
             " of " + std::to_string(std::distance(mm.begin(), l)) +
             " bytes of the events file");
+    }
+
+    if (color_limit > 0) {
+        events.resize(color_limit);
     }
 
     return events;

@@ -41,6 +41,8 @@ static const char USAGE[] =
       --export-network          Save network as graphviz file to ./graph. Do not run algorithm.
       -N, --dataset-name=<n>    Use this name to identify the dataset used in logfiles.
                                 [default: default]
+      -C, --num-colors=<n>      Limit the number of colors to <n>. 0 is unlimited.
+                                [default: 0]
 )";
 using namespace gsinfmax;
 
@@ -48,6 +50,7 @@ void apply_reader_settings(auto &args, auto &reader) {
     if (args.at("--random-weights").asBool()) {
         reader.set_random_weights();
     }
+    reader.limit_colors(args.at("--num-colors").asLong());
     reader.set_weights(std::stod(args.at("--edge-weights").asString()));
 }
 
