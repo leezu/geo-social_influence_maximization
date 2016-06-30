@@ -53,12 +53,13 @@ class ris : public influence_maximization_algorithm {
     build_seedset(const std::vector<unsigned int> &budgets,
                   const color_rr_sets &color_r,
                   const color_user_rr_set_ids &color_ids);
-    std::vector<std::vector<int>>
-    get_color_user_rrsetdegrees(const color_user_rr_set_ids &color_ids);
+    std::vector<std::vector<double>>
+    get_color_user_rrsetdegrees(const color_rr_sets &color_rs,
+                                const color_user_rr_set_ids &color_ids);
     std::pair<vertex_descriptor, color> get_best_user_color(
         const std::vector<unsigned int> &budgets,
-        const std::vector<std::vector<int>> &color_user_rrsetsdegrees,
-        const color_rr_sets &color_r);
+        const std::vector<std::vector<double>> &color_user_rrsetsdegrees,
+        const color_rr_sets &color_rs);
 
     vertex_descriptor random_user(const color c);
 

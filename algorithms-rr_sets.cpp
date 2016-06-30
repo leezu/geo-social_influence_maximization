@@ -246,14 +246,16 @@ double ris::estimate_influence(
 /**
  * Extract the number of rr_sets each user is in for each color
  */
-std::vector<std::vector<int>>
-ris::get_color_user_rrsetdegrees(const color_user_rr_set_ids &color_ids) {
-    std::vector<std::vector<int>> color_user_rrsetsdegrees(color_ids.size());
+std::vector<std::vector<double>>
+ris::get_color_user_rrsetdegrees(const color_rr_sets &color_rs,
+                                 const color_user_rr_set_ids &color_ids) {
+    std::vector<std::vector<double>> color_user_rrsetsdegrees(color_ids.size());
     for (color c{0}; c < color_ids.size(); c++) {
         color_user_rrsetsdegrees[c].resize(color_ids[c].size());
-
         for (int i{0}; i < color_ids[c].size(); i++) {
-            color_user_rrsetsdegrees[c][i] = color_ids[c][i].size();
+            color_user_rrsetsdegrees[c][i] = color_ids[c][i].size() *
+                                             color_sumimportances[c] /
+                                             color_rs[c].size();
         }
     }
 
@@ -267,11 +269,11 @@ ris::get_color_user_rrsetdegrees(const color_user_rr_set_ids &color_ids) {
  */
 std::pair<vertex_descriptor, color> ris::get_best_user_color(
     const std::vector<unsigned int> &budgets,
-    const std::vector<std::vector<int>> &color_user_rrsetsdegrees,
+    const std::vector<std::vector<double>> &color_user_rrsetsdegrees,
     const color_rr_sets &color_rs) {
     color c{-1};
-    int current_max = std::numeric_limits<int>::lowest();
-    std::vector<int>::const_iterator current_iterator;
+    double current_max = std::numeric_limits<double>::lowest();
+    std::vector<double>::const_iterator current_iterator;
     for (color i{0}; i < color_user_rrsetsdegrees.size(); i++) {
         auto t = std::max_element(color_user_rrsetsdegrees[i].begin(),
                                   color_user_rrsetsdegrees[i].end());
@@ -298,7 +300,8 @@ ris::build_seedset(const std::vector<unsigned int> &const_budgets,
     std::vector<unsigned int> budgets(const_budgets.begin(),
                                       const_budgets.end());
 
-    auto color_user_rrsetsdegrees = get_color_user_rrsetdegrees(color_ids);
+    auto color_user_rrsetsdegrees =
+        get_color_user_rrsetdegrees(color_rs, color_ids);
 
     // We store the rrset_ids which we have processed already
     std::vector<std::vector<bool>> color_seen_rrsets(color_rs.size());
@@ -333,7 +336,8 @@ ris::build_seedset(const std::vector<unsigned int> &const_budgets,
                     // interesting anymore,
                     // we therefore "ignore" them by decreasing the degree.
                     for (const user_distance &u_d : color_rs[i][rrset_id]) {
-                        color_user_rrsetsdegrees[i][u_d.user]--;
+                        color_user_rrsetsdegrees[i][u_d.user] -=
+                            color_sumimportances[i] / color_rs[c].size();
                     }
                 }
             }
