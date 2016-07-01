@@ -81,10 +81,12 @@ void print_seedset(auto seedset) {
     }
 
     std::cout << "\nImportances: ";
+    double sum{0};
     for (auto &s : seedset.first) {
         std::cout << s << " ";
+        sum += s;
     }
-    std::cout << std::endl;
+    std::cout << "(sum: " << sum << ")" << std::endl;
 }
 
 int main(int argc, char *argv[]) {
