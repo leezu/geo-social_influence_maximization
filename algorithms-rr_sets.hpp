@@ -12,12 +12,17 @@ class ris : public influence_maximization_algorithm {
                        double delta = 0.1);
     ris(network g);
 
+    void use_exact_method();
+    void use_fast_method();
+
   private:
     using user_rr_set_ids = std::vector<std::vector<int>>;
     using color_user_rr_set_ids = std::vector<user_rr_set_ids>;
     using rr_set = std::vector<user_distance>;
     using rr_sets = std::vector<std::vector<user_distance>>;
     using color_rr_sets = std::vector<rr_sets>;
+
+    bool exact{false};
 
     std::vector<double> color_sumimportances;
     std::vector<std::discrete_distribution<>> color_distributions;
@@ -53,6 +58,14 @@ class ris : public influence_maximization_algorithm {
     build_seedset(const std::vector<unsigned int> &budgets,
                   const color_rr_sets &color_r,
                   const color_user_rr_set_ids &color_ids);
+    std::unordered_map<vertex_descriptor, color>
+    build_seedset_exact(const std::vector<unsigned int> &budgets,
+                        const color_rr_sets &color_r,
+                        const color_user_rr_set_ids &color_ids);
+    std::unordered_map<vertex_descriptor, color>
+    build_seedset_inexact(const std::vector<unsigned int> &budgets,
+                          const color_rr_sets &color_r,
+                          const color_user_rr_set_ids &color_ids);
     std::vector<std::vector<double>>
     get_color_user_rrsetdegrees(const color_rr_sets &color_rs,
                                 const color_user_rr_set_ids &color_ids);

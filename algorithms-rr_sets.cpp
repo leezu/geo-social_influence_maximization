@@ -4,6 +4,7 @@
 
 #include <algorithm>
 #include <boost/graph/iteration_macros.hpp>
+#include <boost/heap/fibonacci_heap.hpp>
 #include <cmath>
 #include <iostream>
 #include <iterator>
@@ -21,6 +22,22 @@ using rr_set = std::vector<user_distance>;
 using rr_sets = std::vector<std::vector<user_distance>>;
 using color_rr_sets = std::vector<rr_sets>;
 using color = int;
+
+struct node {
+    int user;
+    color c;
+    double value;
+    int iteration;
+
+    node(int v, color c, double value, int i)
+        : user(v), c(c), value(value), iteration(i) {}
+};
+
+struct compare_node {
+    bool operator()(const node &n1, const node &n2) const {
+        return n1.value < n2.value;
+    }
+};
 }
 std::pair<std::vector<double>, std::unordered_map<vertex_descriptor, int>>
 ris::maximize_influence(std::vector<unsigned int> budgets, double epsilon,
@@ -293,9 +310,89 @@ std::pair<vertex_descriptor, color> ris::get_best_user_color(
 }
 
 std::unordered_map<vertex_descriptor, int>
+ris::build_seedset_exact(const std::vector<unsigned int> &const_budgets,
+                         const color_rr_sets &color_rs,
+                         const color_user_rr_set_ids &color_ids) {
+    std::unordered_map<vertex_descriptor, color> seedset;
+    std::vector<unsigned int> budgets(const_budgets.begin(),
+                                      const_budgets.end());
+
+    boost::heap::fibonacci_heap<node, boost::heap::compare<compare_node>> heap;
+    int iteration{0};
+
+    // Initialize the heap
+    for (int v{0}; v < color_ids[0].size(); v++) {
+        color max_index{-1};
+        double max{std::numeric_limits<double>::lowest()};
+        for (color c{0}; c < color_ids.size(); c++) {
+            if (budgets[c] == 0) {
+                continue;
+            }
+
+            double value_v = color_ids[c][v].size() * color_sumimportances[c] /
+                             color_rs[c].size();
+            if (value_v > max) {
+                max = value_v;
+                max_index = c;
+            }
+        }
+
+        heap.push({v, max_index, max, iteration});
+    }
+
+    double seedset_estimation{0};
+    while (std::accumulate(budgets.begin(), budgets.end(), 0) > 0) {
+        node top_node = heap.top();
+        heap.pop();
+
+        if (iteration == top_node.iteration) {
+            seedset.insert({top_node.user, top_node.c});
+            seedset_estimation += top_node.value;
+            budgets[top_node.c]--;
+            iteration++;
+
+            assert(budgets[top_node.c] >= 0);
+        } else {
+            // Compute for each available color the value of the user
+            color max_index{-1};
+            double max{std::numeric_limits<double>::lowest()};
+            for (color c{0}; c < color_ids.size(); c++) {
+                if (budgets[c] == 0) {
+                    continue;
+                }
+
+                seedset.insert({top_node.user, c});
+                double value_v =
+                    estimate_influence(seedset, color_rs, color_ids) -
+                    seedset_estimation;
+                seedset.erase(top_node.user);
+                if (value_v > max) {
+                    max = value_v;
+                    max_index = c;
+                }
+            }
+
+            heap.push({top_node.user, max_index, max, iteration});
+        }
+    }
+
+    return seedset;
+}
+std::unordered_map<vertex_descriptor, int>
 ris::build_seedset(const std::vector<unsigned int> &const_budgets,
                    const color_rr_sets &color_rs,
                    const color_user_rr_set_ids &color_ids) {
+    if (!exact) {
+        return build_seedset_inexact(const_budgets, color_rs, color_ids);
+    } else {
+        return build_seedset_exact(const_budgets, color_rs, color_ids);
+    }
+}
+
+std::unordered_map<vertex_descriptor, int>
+ris::build_seedset_inexact(const std::vector<unsigned int> &const_budgets,
+                           const color_rr_sets &color_rs,
+                           const color_user_rr_set_ids &color_ids) {
     std::unordered_map<vertex_descriptor, color> seedset;
     std::vector<unsigned int> budgets(const_budgets.begin(),
                                       const_budgets.end());
@@ -365,6 +462,9 @@ ris::ris(network g) : influence_maximization_algorithm(g) {
             tmp_importances.begin(), tmp_importances.end(), 0.0));
     }
 }
+
+void ris::use_exact_method() { exact = true; }
+void ris::use_fast_method() { exact = false; }
 
 /**
  * Generates n RR sets for each color.

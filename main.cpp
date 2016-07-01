@@ -36,6 +36,7 @@ static const char USAGE[] =
                                 [default: 0.1]
       --delta=<d>               Set delta for the algorithms that support it.
                                 [default: 0.1]
+      --ris-exact               Use the exact method to build the seedset in the ris algorithm.
       --no-statusline
       --statistics              Print out statistics for the graph being processed.
       --export-network          Save network as graphviz file to ./graph. Do not run algorithm.
@@ -193,6 +194,10 @@ int main(int argc, char *argv[]) {
     } else if (algorithm_name == "ris") {
         auto algorithm = algorithms::ris(g);
 
+        if (args.at("--ris-exact").asBool()) {
+            algorithm.use_exact_method();
+        }
+
         double epsilon = std::stod(args.at("--epsilon").asString());
         double delta = std::stod(args.at("--delta").asString());
 
@@ -204,7 +209,15 @@ int main(int argc, char *argv[]) {
         for (int i{0}; i < seedset.first.size(); i++) {
             influence_file << budget_per_color << "\t" << edge_weights << "\t"
                            << epsilon << "\t" << delta << "\t" << dataset_name
-                           << "\t" << i << "\t" << seedset.first[i] << "\n";
+                           << "\t";
+
+            if (args.at("--ris-exact").asBool()) {
+                influence_file << "1\t";
+            } else {
+                influence_file << "0\t";
+            }
+
+            influence_file << i << "\t" << seedset.first[i] << "\n";
         }
 
         // Log time spent
@@ -214,8 +227,15 @@ int main(int argc, char *argv[]) {
                 boost::chrono::process_user_cpu_clock::now() - start_time)
                 .count();
         time_file << budget_per_color << "\t" << edge_weights << "\t" << epsilon
-                  << "\t" << delta << "\t" << dataset_name << "\t" << runtime
-                  << "\n";
+                  << "\t" << delta << "\t" << dataset_name << "\t";
+
+        if (args.at("--ris-exact").asBool()) {
+            time_file << "1\t";
+        } else {
+            time_file << "0\t";
+        }
+
+        time_file << runtime << "\n";
     }
 
     return 0;
