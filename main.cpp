@@ -151,9 +151,9 @@ int main(int argc, char *argv[]) {
         // Create logfile with influences and parameters of the program
         auto influence_file = get_logfile("influences-classic");
         for (int i{0}; i < seedset.first.size(); i++) {
-            influence_file << budget_per_color << "\t" << edge_weights << "\t"
-                           << dataset_name << "\t" << i << "\t"
-                           << seedset.first[i] << "\n";
+            influence_file << budget_per_color << "\t" << number_of_colors
+                           << "\t" << edge_weights << "\t" << dataset_name
+                           << "\t" << i << "\t" << seedset.first[i] << "\n";
         }
 
         // Log time spent
@@ -162,8 +162,9 @@ int main(int argc, char *argv[]) {
             boost::chrono::round<boost::chrono::microseconds>(
                 boost::chrono::process_user_cpu_clock::now() - start_time)
                 .count();
-        time_file << budget_per_color << "\t" << edge_weights << "\t"
-                  << dataset_name << "\t" << runtime << "\n";
+        time_file << budget_per_color << "\t" << number_of_colors << "\t"
+                  << edge_weights << "\t" << dataset_name << "\t" << runtime
+                  << "\n";
     } else if (algorithm_name == "naiveclassic") {
         std::cout << "Running baseline lazy greedy\n";
 
@@ -184,9 +185,9 @@ int main(int argc, char *argv[]) {
         // Create logfile with influences and parameters of the program
         auto influence_file = get_logfile("influences-naiveclassic");
         for (int i{0}; i < seedset.first.size(); i++) {
-            influence_file << budget_per_color << "\t" << edge_weights << "\t"
-                           << dataset_name << "\t" << i << "\t"
-                           << seedset.first[i] << "\n";
+            influence_file << budget_per_color << "\t" << number_of_colors
+                           << "\t" << edge_weights << "\t" << dataset_name
+                           << "\t" << i << "\t" << seedset.first[i] << "\n";
         }
 
         // Log time spent
@@ -195,8 +196,9 @@ int main(int argc, char *argv[]) {
             boost::chrono::round<boost::chrono::microseconds>(
                 boost::chrono::process_user_cpu_clock::now() - start_time)
                 .count();
-        time_file << budget_per_color << "\t" << edge_weights << "\t"
-                  << dataset_name << "\t" << runtime << "\n";
+        time_file << budget_per_color << "\t" << number_of_colors << "\t"
+                  << edge_weights << "\t" << dataset_name << "\t" << runtime
+                  << "\n";
     } else if (algorithm_name == "ris") {
         auto algorithm = algorithms::ris(g);
 
@@ -213,9 +215,9 @@ int main(int argc, char *argv[]) {
         // Create logfile with influences and parameters of the program
         auto influence_file = get_logfile("influences-ris");
         for (int i{0}; i < seedset.first.size(); i++) {
-            influence_file << budget_per_color << "\t" << edge_weights << "\t"
-                           << epsilon << "\t" << delta << "\t" << dataset_name
-                           << "\t";
+            influence_file << budget_per_color << "\t" << number_of_colors
+                           << "\t" << edge_weights << "\t" << epsilon << "\t"
+                           << delta << "\t" << dataset_name << "\t";
 
             if (args.at("--ris-exact").asBool()) {
                 influence_file << "1\t";
@@ -232,8 +234,9 @@ int main(int argc, char *argv[]) {
             boost::chrono::round<boost::chrono::microseconds>(
                 boost::chrono::process_user_cpu_clock::now() - start_time)
                 .count();
-        time_file << budget_per_color << "\t" << edge_weights << "\t" << epsilon
-                  << "\t" << delta << "\t" << dataset_name << "\t";
+        time_file << budget_per_color << "\t" << number_of_colors << "\t"
+                  << edge_weights << "\t" << epsilon << "\t" << delta << "\t"
+                  << dataset_name << "\t";
 
         if (args.at("--ris-exact").asBool()) {
             time_file << "1\t";
