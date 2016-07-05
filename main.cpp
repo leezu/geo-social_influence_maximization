@@ -152,8 +152,9 @@ int main(int argc, char *argv[]) {
         auto influence_file = get_logfile("influences-classic");
         for (int i{0}; i < seedset.first.size(); i++) {
             influence_file << budget_per_color << "\t" << number_of_colors
-                           << "\t" << edge_weights << "\t" << dataset_name
-                           << "\t" << i << "\t" << seedset.first[i] << "\n";
+                           << "\t" << args.at("--num-mc").asLong() << "\t"
+                           << edge_weights << "\t" << dataset_name << "\t" << i
+                           << "\t" << seedset.first[i] << "\n";
         }
 
         // Log time spent
@@ -163,8 +164,8 @@ int main(int argc, char *argv[]) {
                 boost::chrono::process_user_cpu_clock::now() - start_time)
                 .count();
         time_file << budget_per_color << "\t" << number_of_colors << "\t"
-                  << edge_weights << "\t" << dataset_name << "\t" << runtime
-                  << "\n";
+                  << args.at("--num-mc").asLong() << "\t" << edge_weights
+                  << "\t" << dataset_name << "\t" << runtime << "\n";
     } else if (algorithm_name == "naiveclassic") {
         std::cout << "Running baseline lazy greedy\n";
 
@@ -186,8 +187,9 @@ int main(int argc, char *argv[]) {
         auto influence_file = get_logfile("influences-naiveclassic");
         for (int i{0}; i < seedset.first.size(); i++) {
             influence_file << budget_per_color << "\t" << number_of_colors
-                           << "\t" << edge_weights << "\t" << dataset_name
-                           << "\t" << i << "\t" << seedset.first[i] << "\n";
+                           << "\t" << args.at("--num-mc").asLong() << "\t"
+                           << edge_weights << "\t" << dataset_name << "\t" << i
+                           << "\t" << seedset.first[i] << "\n";
         }
 
         // Log time spent
@@ -197,8 +199,8 @@ int main(int argc, char *argv[]) {
                 boost::chrono::process_user_cpu_clock::now() - start_time)
                 .count();
         time_file << budget_per_color << "\t" << number_of_colors << "\t"
-                  << edge_weights << "\t" << dataset_name << "\t" << runtime
-                  << "\n";
+                  << args.at("--num-mc").asLong() << "\t" << edge_weights
+                  << "\t" << dataset_name << "\t" << runtime << "\n";
     } else if (algorithm_name == "ris") {
         auto algorithm = algorithms::ris(g);
 
