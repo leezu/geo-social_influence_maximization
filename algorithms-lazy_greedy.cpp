@@ -43,6 +43,7 @@ void lazy_greedy::disable_statusline() { statusline_enabled = false; }
 void lazy_greedy::enable_statusline() { statusline_enabled = true; }
 void lazy_greedy::disable_generate_statistics() { generate_statistics = false; }
 void lazy_greedy::enable_generate_statistics() { generate_statistics = true; }
+void lazy_greedy::set_number_of_mc(int mc) { number_of_mc_sim = mc; }
 
 void lazy_greedy::update_statusline_seeds(
     const int current_seedset_size, const std::vector<unsigned int> &budgets,

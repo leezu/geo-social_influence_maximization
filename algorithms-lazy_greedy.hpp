@@ -21,6 +21,8 @@ class lazy_greedy : public influence_maximization_algorithm {
     void enable_generate_statistics();
     void disable_generate_statistics();
 
+    void set_number_of_mc(int mc);
+
     void enable_statusline();
     void disable_statusline();
 
@@ -39,7 +41,7 @@ class lazy_greedy : public influence_maximization_algorithm {
         std::unordered_set<std::string> initialized;
     };
 
-    int number_of_mc_sim{10'000};
+    int number_of_mc_sim{100};
     int number_of_parties;
 
     bool statusline_enabled{true};

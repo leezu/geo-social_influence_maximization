@@ -44,6 +44,8 @@ static const char USAGE[] =
                                 [default: default]
       -C, --num-colors=<n>      Limit the number of colors to <n>. 0 is unlimited.
                                 [default: 0]
+      -M, --num-mc=<n>         Number of monte carlo iterations. Only applicable to lazy greedy algorithm.
+                                [default: 100]
 )";
 using namespace gsinfmax;
 
@@ -141,6 +143,8 @@ int main(int argc, char *argv[]) {
             algorithm.disable_statusline();
         }
 
+        algorithm.set_number_of_mc(args.at("--num-mc").asLong());
+
         auto seedset = algorithm.maximize_influence(budgets);
         print_seedset(seedset);
 
@@ -171,6 +175,8 @@ int main(int argc, char *argv[]) {
         if (args.at("--no-statusline").asBool()) {
             algorithm.disable_statusline();
         }
+
+        algorithm.set_number_of_mc(args.at("num-mc").asLong());
 
         auto seedset = algorithm.maximize_influence_baseline(budgets);
         print_seedset(seedset);
