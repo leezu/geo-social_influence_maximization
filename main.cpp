@@ -20,6 +20,7 @@ static const char USAGE[] =
     Usage:
       gsinfmax gowalla [options] <edges> <locations>
       gsinfmax gowalla_austin_dallas [options] <edges> <locations> <events>
+      gsinfmax synthetic [options] <edges> <locations> <events>
       gsinfmax (-h | --help)
       gsinfmax --version
 
@@ -71,6 +72,13 @@ network get_network(auto args) {
         apply_reader_settings(args, reader);
 
         // reader.set_no_drop_users_without_friends();
+
+        return reader.read_network(args["<edges>"].asString(),
+                                   args["<locations>"].asString(),
+                                   args["<events>"].asString());
+    } else if (args.at("synthetic").asBool()) {
+        reader::synthetic reader;
+        apply_reader_settings(args, reader);
 
         return reader.read_network(args["<edges>"].asString(),
                                    args["<locations>"].asString(),

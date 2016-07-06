@@ -43,6 +43,9 @@ class generic_reader {
     void limit_colors(int limit);
 
   protected:
+    auto read_events(std::string events_file);
+    void compute_user_importances(const auto events, auto &g);
+
     bool random_weights{false};
     double weight{0.1};
     int color_limit{0};
@@ -63,10 +66,18 @@ class gowalla_austin_dallas : public generic_reader {
   private:
     network read_edges(std::string edge_file);
     void read_locations(std::string location_file, network &g);
-    auto read_events(std::string events_file);
-    void compute_user_importances(const auto events, auto &g);
 
     bool drop_users_without_friends{true};
+};
+
+class synthetic : public generic_reader {
+  public:
+    network read_network(std::string edge_file, std::string location_file,
+                         std::string events_file);
+
+  private:
+    network read_edges(std::string edge_file);
+    void read_locations(std::string location_file, network &g);
 };
 
 class gowalla : public generic_reader {

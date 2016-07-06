@@ -176,7 +176,7 @@ BOOST_SPIRIT_DEFINE(event);
 /**
  * Read event locations from file and return vector of event_location.
  */
-auto gowalla_austin_dallas::read_events(std::string events_file) {
+auto generic_reader::read_events(std::string events_file) {
     // Parse the event locations
     boost::iostreams::mapped_file_source mm(events_file);
     auto f = mm.begin(), l = mm.end();
@@ -198,8 +198,7 @@ auto gowalla_austin_dallas::read_events(std::string events_file) {
     return events;
 }
 
-void gowalla_austin_dallas::compute_user_importances(const auto events,
-                                                     auto &g) {
+void generic_reader::compute_user_importances(const auto events, auto &g) {
     set_number_of_colors(events.size(), g);
 
     BGL_FORALL_VERTICES(user, g, network) {
@@ -223,6 +222,111 @@ void gowalla_austin_dallas::compute_user_importances(const auto events,
 
     return;
 };
+
+/**
+ * Create network from synthetic dataset.
+ */
+network synthetic::read_network(std::string edge_file,
+                                std::string location_file,
+                                std::string events_file) {
+    auto g = read_edges(edge_file);
+    read_locations(location_file, g);
+
+    auto events = read_events(events_file);
+
+    compute_user_importances(events, g);
+
+    return g;
+}
+
+/**
+ * Construct network by reading edges of adjacency list file.
+ */
+network synthetic::read_edges(std::string edge_file) {
+    network g;
+
+    // Lambda function that adds edge to graph
+    auto add_edge = [&](auto &ctx) {
+        auto attr = x3::_attr(ctx);
+        auto vertex_id = fusion::at_c<0>(attr);
+        auto neighbors = fusion::at_c<1>(attr);
+
+        for (auto i : neighbors) {
+            auto aer = boost::add_edge(this->map_vertex(vertex_id, g),
+                                       this->map_vertex(i, g), g);
+
+            friendship edge{};
+            if (random_weights == true) {
+                edge.weight = distribution(generator);
+            } else {
+                edge.weight = weight;
+            }
+
+            g[aer.first] = edge;
+        }
+    };
+
+    // Parse the edge file
+    boost::iostreams::mapped_file_source mm(edge_file);
+    auto f = mm.begin(), l = mm.end();
+
+    //               [vertex_id]        [number_of_neigbhors]
+    auto n_friends = x3::int_ >> ' ' >> x3::omit[x3::int_] >> ' ' >>
+                     // [neighbor]
+                     (x3::int_ % ' ') >> x3::eol;
+
+    x3::parse(f, l, *n_friends[add_edge]);
+
+    if (f != l) {
+        throw std::runtime_error(
+            "Could only parse " + std::to_string(std::distance(mm.begin(), f)) +
+            " of " + std::to_string(std::distance(mm.begin(), l)) +
+            " bytes of the edges file");
+    }
+
+    return g;
+}
+
+/**
+ * Read user locations from location file and add them to the network.
+ */
+void synthetic::read_locations(std::string location_file, network &g) {
+    auto add_location = [&](auto &ctx) {
+        // _attr(ctx) returns a boost fusion tuple
+        auto attr = x3::_attr(ctx);
+        auto vertex_id = fusion::at_c<0>(attr);
+
+        // Add location to the user
+        if (this->mapped_vertex(vertex_id) != network::null_vertex()) {
+            auto &props = g[this->map_vertex(vertex_id, g)];
+            props.latitude = fusion::at_c<1>(attr);
+            props.longitude = fusion::at_c<2>(attr);
+
+            return true;
+        } else {
+            return false;
+        }
+    };
+
+    boost::iostreams::mapped_file_source mm(location_file);
+
+    auto f = mm.begin(), l = mm.end();
+
+    x3::parse(f, l,
+              // [vertex_id]        [latitude]            [longitude]
+              *(x3::int_ >> ' ' >> (x3::int_ >> ' ' >> x3::double_ >> ' ' >>
+                                    x3::double_)[add_location] >>
+                ' ' >> x3::double_ >> ' ' >> x3::double_ >> x3::eol));
+
+    if (f != l) {
+        throw std::runtime_error(
+            "Could only parse " + std::to_string(std::distance(mm.begin(), f)) +
+            " of " + std::to_string(std::distance(mm.begin(), l)) +
+            " bytes of the locations file");
+    }
+
+    return;
+}
 
 /**
  * Create network from gowalla austin dallas dataset.
