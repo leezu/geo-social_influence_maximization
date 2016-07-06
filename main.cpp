@@ -4,6 +4,7 @@
 #include <fstream>
 #include <iostream>
 #include <string>
+#include <unordered_map>
 
 #include "docopt.h"
 
@@ -25,8 +26,11 @@ static const char USAGE[] =
     Options:
       -h, --help                Show this screen.
       --version                 Show version.
-      -A, --algorithm=<a>       Use algorithm a. Must be one of ris, classic, naiveclassic
+      -A, --algorithm=<a>       Use algorithm a. Must be one of ris, classic
                                 [default: ris]
+      -V, --algo-version=<v>    Use the specified version of the algorithm. I.e. exact or heuristic version of ris.
+                                Adapted or naive version of classic algorithm.
+                                [default: 0]
       --edge-weights=<w>        Set edge weights to w (if not specified in dataset)
                                 [default: 0.1]
       --random-weights          Don't use egde-weights, but generate edge weights uniformly randomly.
@@ -36,7 +40,6 @@ static const char USAGE[] =
                                 [default: 0.1]
       --delta=<d>               Set delta for the algorithms that support it.
                                 [default: 0.1]
-      --ris-exact               Use the exact method to build the seedset in the ris algorithm.
       --no-statusline
       --statistics              Print out statistics for the graph being processed.
       --export-network          Save network as graphviz file to ./graph. Do not run algorithm.
@@ -132,8 +135,6 @@ int main(int argc, char *argv[]) {
     auto start_time = boost::chrono::process_user_cpu_clock::now();
 
     if (algorithm_name == "classic") {
-        std::cout << "Running adapted lazy greedy\n";
-
         auto algorithm = algorithms::lazy_greedy(g);
 
         if (args.at("--statistics").asBool()) {
@@ -145,7 +146,14 @@ int main(int argc, char *argv[]) {
 
         algorithm.set_number_of_mc(args.at("--num-mc").asLong());
 
-        auto seedset = algorithm.maximize_influence(budgets);
+        std::pair<std::vector<double>,
+                  std::unordered_map<vertex_descriptor, int>>
+            seedset;
+        if (args.at("--algo-version").asLong() == 0) {
+            seedset = algorithm.maximize_influence(budgets);
+        } else {
+            seedset = algorithm.maximize_influence_baseline(budgets);
+        }
         print_seedset(seedset);
 
         // Create logfile with influences and parameters of the program
@@ -153,7 +161,8 @@ int main(int argc, char *argv[]) {
         for (int i{0}; i < seedset.first.size(); i++) {
             influence_file << budget_per_color << "\t" << number_of_colors
                            << "\t" << args.at("--num-mc").asLong() << "\t"
-                           << edge_weights << "\t" << dataset_name << "\t" << i
+                           << edge_weights << "\t" << dataset_name << "\t"
+                           << args.at("--algo-version").asLong() << "\t" << i
                            << "\t" << seedset.first[i] << "\n";
         }
 
@@ -165,48 +174,12 @@ int main(int argc, char *argv[]) {
                 .count();
         time_file << budget_per_color << "\t" << number_of_colors << "\t"
                   << args.at("--num-mc").asLong() << "\t" << edge_weights
-                  << "\t" << dataset_name << "\t" << runtime << "\n";
-    } else if (algorithm_name == "naiveclassic") {
-        std::cout << "Running baseline lazy greedy\n";
-
-        auto algorithm = algorithms::lazy_greedy(g);
-
-        if (args.at("--statistics").asBool()) {
-            algorithm.enable_generate_statistics();
-        }
-        if (args.at("--no-statusline").asBool()) {
-            algorithm.disable_statusline();
-        }
-
-        algorithm.set_number_of_mc(args.at("num-mc").asLong());
-
-        auto seedset = algorithm.maximize_influence_baseline(budgets);
-        print_seedset(seedset);
-
-        // Create logfile with influences and parameters of the program
-        auto influence_file = get_logfile("influences-naiveclassic");
-        for (int i{0}; i < seedset.first.size(); i++) {
-            influence_file << budget_per_color << "\t" << number_of_colors
-                           << "\t" << args.at("--num-mc").asLong() << "\t"
-                           << edge_weights << "\t" << dataset_name << "\t" << i
-                           << "\t" << seedset.first[i] << "\n";
-        }
-
-        // Log time spent
-        auto time_file = get_logfile("time-naiveclassic");
-        auto runtime =
-            boost::chrono::round<boost::chrono::microseconds>(
-                boost::chrono::process_user_cpu_clock::now() - start_time)
-                .count();
-        time_file << budget_per_color << "\t" << number_of_colors << "\t"
-                  << args.at("--num-mc").asLong() << "\t" << edge_weights
-                  << "\t" << dataset_name << "\t" << runtime << "\n";
+                  << "\t" << dataset_name << "\t"
+                  << args.at("--algo-version").asLong() << "\t" << runtime
+                  << "\n";
     } else if (algorithm_name == "ris") {
         auto algorithm = algorithms::ris(g);
-
-        if (args.at("--ris-exact").asBool()) {
-            algorithm.use_exact_method();
-        }
+        algorithm.use_version(args.at("--algo-version").asLong());
 
         double epsilon = std::stod(args.at("--epsilon").asString());
         double delta = std::stod(args.at("--delta").asString());
@@ -219,15 +192,9 @@ int main(int argc, char *argv[]) {
         for (int i{0}; i < seedset.first.size(); i++) {
             influence_file << budget_per_color << "\t" << number_of_colors
                            << "\t" << edge_weights << "\t" << epsilon << "\t"
-                           << delta << "\t" << dataset_name << "\t";
-
-            if (args.at("--ris-exact").asBool()) {
-                influence_file << "1\t";
-            } else {
-                influence_file << "0\t";
-            }
-
-            influence_file << i << "\t" << seedset.first[i] << "\n";
+                           << delta << "\t" << dataset_name << "\t"
+                           << args.at("--algo-version").asLong() << "\t" << i
+                           << "\t" << seedset.first[i] << "\n";
         }
 
         // Log time spent
@@ -238,15 +205,8 @@ int main(int argc, char *argv[]) {
                 .count();
         time_file << budget_per_color << "\t" << number_of_colors << "\t"
                   << edge_weights << "\t" << epsilon << "\t" << delta << "\t"
-                  << dataset_name << "\t";
-
-        if (args.at("--ris-exact").asBool()) {
-            time_file << "1\t";
-        } else {
-            time_file << "0\t";
-        }
-
-        time_file << runtime << "\n";
+                  << dataset_name << "\t" << args.at("--algo-version").asLong()
+                  << "\t" << runtime << "\n";
     }
 
     return 0;

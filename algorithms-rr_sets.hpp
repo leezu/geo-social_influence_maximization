@@ -12,8 +12,7 @@ class ris : public influence_maximization_algorithm {
                        double delta = 0.1);
     ris(network g);
 
-    void use_exact_method();
-    void use_fast_method();
+    void use_version(int version);
 
   private:
     using user_rr_set_ids = std::vector<std::vector<int>>;
@@ -22,7 +21,7 @@ class ris : public influence_maximization_algorithm {
     using rr_sets = std::vector<std::vector<user_distance>>;
     using color_rr_sets = std::vector<rr_sets>;
 
-    bool exact{false};
+    int version{0};
 
     std::vector<double> color_sumimportances;
     std::vector<std::discrete_distribution<>> color_distributions;

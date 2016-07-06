@@ -88,14 +88,7 @@ ris::maximize_influence(std::vector<unsigned int> budgets, double epsilon,
 
             if (delta_1 + delta_2 <= delta) {
                 std::cout << "Returning seedset early" << std::endl;
-
-                std::vector<double> influences(color_rs.size());
-                for (color c{0}; c < color_rs.size(); c++) {
-                    influences[c] = estimate_influence(seedset, c, color_rs[c],
-                                                       color_ids[c]);
-                }
-
-                return {influences, seedset};
+                break;
             }
         }
 
@@ -104,7 +97,12 @@ ris::maximize_influence(std::vector<unsigned int> budgets, double epsilon,
         cov = estimate_influence(seedset, color_rs, color_ids);
     }
 
-    std::cout << "Returning seedset late" << std::endl;
+    // Version 0 uses the heuristic until enough RR sets are
+    // constructed but uses the exact method to generate the final
+    // seedset. Therefore we need to reconstruct the seedset.
+    if (version == 0) {
+        seedset = build_seedset_exact(budgets, color_rs, color_ids);
+    }
 
     std::vector<double> influences(color_rs.size());
     for (color c{0}; c < color_rs.size(); c++) {
@@ -382,7 +380,7 @@ std::unordered_map<vertex_descriptor, int>
 ris::build_seedset(const std::vector<unsigned int> &const_budgets,
                    const color_rr_sets &color_rs,
                    const color_user_rr_set_ids &color_ids) {
-    if (!exact) {
+    if (version == 0 || version == 1) {
         return build_seedset_inexact(const_budgets, color_rs, color_ids);
     } else {
         return build_seedset_exact(const_budgets, color_rs, color_ids);
@@ -463,8 +461,7 @@ ris::ris(network g) : influence_maximization_algorithm(g) {
     }
 }
 
-void ris::use_exact_method() { exact = true; }
-void ris::use_fast_method() { exact = false; }
+void ris::use_version(int v) { version = v; }
 
 /**
  * Generates n RR sets for each color.
