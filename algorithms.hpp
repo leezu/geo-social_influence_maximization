@@ -32,7 +32,7 @@ class influence_maximization_algorithm {
     using color = int;
 
     const network g;
-    std::ranlux24_base generator;
+    std::ranlux24_base generator{std::random_device{}()};
 
     std::vector<user_color> random_propagation(
         const std::unordered_map<vertex_descriptor, color> &s,
