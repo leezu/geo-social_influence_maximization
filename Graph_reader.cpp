@@ -206,15 +206,22 @@ void generic_reader::compute_user_importances(const auto events, auto &g) {
 
         int i{0}; // Loop index
         for (auto event : events) {
-            auto d =
+            double d_double =
                 misc::great_circle_length(g[user].latitude, g[user].longitude,
                                           event.latitude, event.longitude);
 
-            if (d == 0) {
-                g[user].importances[i] = std::numeric_limits<double>::max();
-            } else {
-                g[user].importances[i] = 1 / d;
-            }
+            // Round to next power of two
+            int d = (int)d_double;
+            d = std::max(1, d);
+            --d;
+            d |= d >> 1;
+            d |= d >> 2;
+            d |= d >> 4;
+            d |= d >> 8;
+            d |= d >> 16;
+            d += 1;
+
+            g[user].importances[i] = 1.0 / d;
 
             i++;
         }
